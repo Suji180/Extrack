@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:extrack/home.dart';
+import '../package:extrack/home.dart';
 
 Future<void> postUser(String name , String age) async{
   final url = Uri.parse("http://127.0.0.1:8000/signup");
