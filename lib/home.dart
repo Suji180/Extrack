@@ -80,7 +80,9 @@ class _HomepageState extends ConsumerState<Homepage> {
         amount: newexpenseAmountController.text,
         date: DateTime.now()
       )
+       postaddexpenses(newexpenseNameController.text, int.tryParse(newexpenseAmountController.text) ?? 0);
      );
+
      clear();
      // close the dialog 
     
