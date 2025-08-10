@@ -4,6 +4,7 @@ import 'package:extrack/data/expense_data.dart';
 import 'package:extrack/models/expense_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:extrack/server_logic.dart/server.dart';
 
 
 
@@ -80,8 +81,9 @@ class _HomepageState extends ConsumerState<Homepage> {
         amount: newexpenseAmountController.text,
         date: DateTime.now()
       )
-       postaddexpenses(newexpenseNameController.text, int.tryParse(newexpenseAmountController.text) ?? 0);
+      
      );
+     postaddexpenses(newexpenseNameController.text, int.tryParse(newexpenseAmountController.text) ?? 0);
 
      clear();
      // close the dialog 
@@ -351,6 +353,19 @@ class _HomepageState extends ConsumerState<Homepage> {
                     (BuildContext context , int index) {
                     return Container (
                       padding: const EdgeInsets.all(10),
+         
+                  margin: const EdgeInsets.only(left: 20,right: 20 , top:  10 ,bottom: 10),
+                  height: MediaQuery.of(context).size.height * 0.11,
+                  
+                  
+                   decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                           color:  const Color.fromARGB(255, 227, 227, 255),
+                          border: Border.all(
+                            color: Colors.grey
+                          )
+         
+                        ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -377,19 +392,6 @@ class _HomepageState extends ConsumerState<Homepage> {
                           ),
                         ],
                       ),
-         
-                  margin: const EdgeInsets.only(left: 20,right: 20 , top:  10 ,bottom: 10),
-                  height: MediaQuery.of(context).size.height * 0.11,
-                  
-                  
-                   decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                           color:  const Color.fromARGB(255, 227, 227, 255),
-                          border: Border.all(
-                            color: Colors.grey
-                          )
-         
-                        ),
                   
                 );
                 
