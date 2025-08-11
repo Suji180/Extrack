@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dart:io';
 
 
 Future<void> postUser(String name , String age) async{
@@ -50,4 +51,23 @@ Future<void> postaddexpenses(String category, int amount) async{
     print("error occured");
   }
  
+}
+Future<void> postimage(String filepath) async{
+  try{
+    var url = Uri.parse("");
+    var request = http.MultipartRequest('POST', url);
+    request.files.add(
+      await http.MultipartFile.fromPath('image', filepath,)
+    );
+    var response = await request.send();
+    if(response.statusCode == 200 || response.statusCode == 201){
+      print("successfully upload image");
+    }
+    else{
+      print("not upload image");
+    }
+  }
+  catch(e){
+    print("Error uplaoding image: $e");
+  }
 }
