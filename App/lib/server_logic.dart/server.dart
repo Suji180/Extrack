@@ -52,6 +52,58 @@ Future<void> postaddexpenses(String category, int amount) async{
   }
  
 }
+Future<void>adduser(String username,int password,int phone,String email)async{
+  try{
+    final url = Uri.parse("");
+    final response = await http.post(
+      url,
+      headers:{
+        'Content-type': 'application/json'
+      },
+      body: jsonEncode({
+        'username' : username,
+        'password' : password,
+        'phone': phone,
+        'email': email,
+      })
+    );
+    if(response.statusCode == 200 || response.statusCode == 201){
+      print("sign up Successfully");
+    }
+    else{
+      print("not signup ");
+    }
+  }
+  catch(e){
+    print("error occured $e");
+  }
+}
+Future<void>getuser(String username,int password)async{
+  try{
+    final url = Uri.parse("");
+    final response = await http.post(
+      url,
+      headers:{
+        'Content-type': 'application/json'
+      },
+      body: jsonEncode({
+        'username' : username,
+        'password' : password,
+      
+      })
+    );
+    if(response.statusCode == 200 || response.statusCode == 201){
+      print("sign up Successfully");
+    }
+    else{
+      print("not signup ");
+    }
+  }
+  catch(e){
+    print("error occured $e");
+  }
+}
+
 Future<void> postimage(String filepath) async{
   try{
     var url = Uri.parse("");
