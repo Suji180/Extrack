@@ -1,0 +1,4 @@
+[submodule "Product"]
+	path = Product
+	url = https://github.com/Vashist077/Expense_App-Product-.git
+	branch = App

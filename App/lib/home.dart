@@ -1,14 +1,13 @@
 
-
+import 'dart:io';
 import 'package:extrack/data/expense_data.dart';
 import 'package:extrack/models/expense_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:extrack/server_logic.dart/server.dart';
+import 'package:image_picker/image_picker.dart';
 
-
-
-
+ 
 
 class Homepage extends ConsumerStatefulWidget {
   const Homepage({super.key});
@@ -20,6 +19,8 @@ class Homepage extends ConsumerStatefulWidget {
 class _HomepageState extends ConsumerState<Homepage> {
     final TextEditingController newexpenseNameController = TextEditingController();
     final TextEditingController newexpenseAmountController = TextEditingController();
+    final TextEditingController newreceiptNameController = TextEditingController();
+    File ? selectedimage;
     void addExpense() {
     showDialog(
       context: context,
@@ -30,7 +31,7 @@ class _HomepageState extends ConsumerState<Homepage> {
           
           content: SizedBox(
             width: MediaQuery.of(context).size.width*0.8,
-            height: MediaQuery.of(context).size.height*0.3,
+            height: MediaQuery.of(context).size.height*0.5,
 
             child: Column(
               children: [
@@ -53,9 +54,71 @@ class _HomepageState extends ConsumerState<Homepage> {
                   ),
                 
                 ),
+
+                TextField(
+                  
+                  decoration: const InputDecoration(
+                    labelText: 'Receipt',
+                    hintText: 'Type your receipt name',
+                
+                  ),
+                  
+                
+                ),
+               GestureDetector(
+                onTap: () {
+                  _pickImageFromGallery();
+                },
+                 child: Container(
+                          margin: const EdgeInsets.only(left: 20,right: 20,top: 20),
+                          
+                          height:MediaQuery.of(context).size.height * 0.04,
+                          width: MediaQuery.of(context).size.width * 1,
+                          child: Center(
+                            child: Text("Upload from Gallery"
+                            ,
+                            style: TextStyle(
+                              color: const Color.fromARGB(255, 255, 255, 255),
+                            ),),
+                            
+                          ),
+                          
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: const Color.fromARGB(255, 2, 64, 118)
+                          
+                          ),
+                         
+                        ),
+               ),
+                GestureDetector(
+                  onTap: () {
+                    _pickImageFromCamera();
+                  },
+                  child: Container(
+                          margin: const EdgeInsets.only(left: 20,right: 20,top: 10,bottom: 10),
+                          
+                          height:MediaQuery.of(context).size.height * 0.04,
+                          width: MediaQuery.of(context).size.width * 1,
+                          child: Center(child: Text("Upload from Camera",
+                          style: TextStyle(
+                              color: const Color.fromARGB(255, 255, 255, 255),
+                            ),)),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: const Color.fromARGB(255, 2, 64, 118)
+                          
+                          ),
+                        ),
+                ),
+               
+
+
               ],
             ),
+           
           ),
+          
           actions: [
             MaterialButton(
               onPressed: add,
@@ -68,10 +131,22 @@ class _HomepageState extends ConsumerState<Homepage> {
             )
             
           ],
+          
 
         );
       },
     );
+  }
+
+  Future _pickImageFromGallery() async {
+    final returnedimage = await ImagePicker().pickImage(source: ImageSource.gallery);
+    setState(() {
+     
+    });
+  }
+
+  Future _pickImageFromCamera() async {
+    final returnedcam = await ImagePicker().pickImage(source: ImageSource.camera);
   }
   void add() 
   {
@@ -79,7 +154,8 @@ class _HomepageState extends ConsumerState<Homepage> {
       ExpenseItem(
         name: newexpenseNameController.text,
         amount: newexpenseAmountController.text,
-        date: DateTime.now()
+        date: DateTime.now(),
+        receiptname: newreceiptNameController.text,
       )
       
      );
@@ -99,6 +175,7 @@ class _HomepageState extends ConsumerState<Homepage> {
   void clear()
   {
     newexpenseNameController.clear();
+    newexpenseAmountController.clear();
     newexpenseAmountController.clear();
   }
 
@@ -394,6 +471,7 @@ class _HomepageState extends ConsumerState<Homepage> {
                       ),
                   
                 );
+
                 
                     
                     },
