@@ -30,7 +30,7 @@ Future<void> postUser(String name , String age) async{
 
 Future<void> postaddexpenses(String category, int amount) async{
   try{
-  final url = Uri.parse("");
+  final url = Uri.parse("http://127.0.0.1:8000/add");
   final response = await http.post(
     url,
     headers:{
@@ -53,9 +53,9 @@ Future<void> postaddexpenses(String category, int amount) async{
   }
  
 }
-Future<void>adduser(String email,int password)async{
+Future<void>adduser(String email,String password)async{
   try{
-    final url = Uri.parse("");
+    final url = Uri.parse("http://127.0.0.1:8000/signup");
     final response = await http.post(
       url,
       headers:{
