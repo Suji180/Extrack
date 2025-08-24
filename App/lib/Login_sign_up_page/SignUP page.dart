@@ -206,7 +206,7 @@ class SignUpPageState extends State<SignUpPage> {
 
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => Homepage()),
+                          MaterialPageRoute(builder: (context) => SecondPage()),
                         );
                       } catch (e) {
                         print("Error: $e");

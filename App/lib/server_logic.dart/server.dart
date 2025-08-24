@@ -80,14 +80,14 @@ Future<void>adduser(String email,String password)async{
 }
 Future<void>getuser(String email,String password)async{
   try{
-    final url = Uri.parse("");
+    final url = Uri.parse("http://127.0.0.1:8000/login");
     final response = await http.post(
       url,
       headers:{
         'Content-type': 'application/json'
       },
       body: jsonEncode({
-        'username' : username,
+        'email' : email,
         'password' : password,
       
       })
