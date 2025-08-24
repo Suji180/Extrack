@@ -2,6 +2,7 @@
 import 'package:extrack/Login_sign_up_page/loginpage.dart';
 import 'package:extrack/home.dart';
 import 'package:flutter/material.dart';
+import 'package:extrack/server_logic.dart/server.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -190,6 +191,28 @@ class SignUpPageState extends State<SignUpPage> {
                           const Color.fromARGB(255, 57, 116, 219),
                     ),
                     onPressed: () async {
+                      if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                return;
+                     }
+
+                    try {
+                        
+                        await adduser(_emailController.text.trim(), _passwordController.text.trim());
+                        Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => Homepage()),
+                         );
+                        } catch (e) {
+                         print("Error: $e");
+                         ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Signup failed")),
+                           );
+                          }
+                          },
+
+    // After successful signup, navigate to homepage
+    
                       /* try {
                         await signUP();
                         // Navigate to HomePage or show a success message
@@ -205,7 +228,9 @@ class SignUpPageState extends State<SignUpPage> {
                       Navigator.pop(
                           context, MaterialPageRoute(builder: (context) => Homepage())
                         );
-                    }, 
+                    },                   const SnackBar(content: Text("Please fill all fields")),
+                      );
+              
                     child: const Text(
                       ' Continue ',
                       style: TextStyle(

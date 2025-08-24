@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:io';
 
 
+
 Future<void> postUser(String name , String age) async{
   final url = Uri.parse("http://127.0.0.1:8000/signup");
   final response = await http.post(
@@ -52,7 +53,7 @@ Future<void> postaddexpenses(String category, int amount) async{
   }
  
 }
-Future<void>adduser(String username,int password,int phone,String email)async{
+Future<void>adduser(String email,int password)async{
   try{
     final url = Uri.parse("");
     final response = await http.post(
@@ -61,10 +62,9 @@ Future<void>adduser(String username,int password,int phone,String email)async{
         'Content-type': 'application/json'
       },
       body: jsonEncode({
-        'username' : username,
+        'email' : email,
         'password' : password,
-        'phone': phone,
-        'email': email,
+        
       })
     );
     if(response.statusCode == 200 || response.statusCode == 201){
