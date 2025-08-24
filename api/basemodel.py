@@ -5,3 +5,7 @@ class Signup(BaseModel):
     email: str
     mobile: str
     password: str
+
+class AddExpense(BaseModel):
+    category: str
+    amount: int
