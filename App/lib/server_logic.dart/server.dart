@@ -53,7 +53,7 @@ Future<void> postaddexpenses(String category, int amount) async{
   }
  
 }
-Future<void>adduser(String email,int password)async{
+Future<void>adduser(String email,String password)async{
   try{
     final url = Uri.parse("");
     final response = await http.post(
@@ -78,7 +78,7 @@ Future<void>adduser(String email,int password)async{
     print("error occured $e");
   }
 }
-Future<void>getuser(String username,int password)async{
+Future<void>getuser(String email,String password)async{
   try{
     final url = Uri.parse("");
     final response = await http.post(
@@ -93,10 +93,10 @@ Future<void>getuser(String username,int password)async{
       })
     );
     if(response.statusCode == 200 || response.statusCode == 201){
-      print("sign up Successfully");
+      print("sign in Successfully");
     }
     else{
-      print("not signup ");
+      print("not signin ");
     }
   }
   catch(e){
