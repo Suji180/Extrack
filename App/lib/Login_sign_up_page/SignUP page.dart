@@ -191,25 +191,27 @@ class SignUpPageState extends State<SignUpPage> {
                           const Color.fromARGB(255, 57, 116, 219),
                     ),
                     onPressed: () async {
-                      if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                return;
-                     }
-
-                    try {
-                        
-                        await adduser(_emailController.text.trim(), _passwordController.text.trim());
-                        Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => Homepage()),
-                         );
-                        } catch (e) {
-                         print("Error: $e");
-                         ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Signup failed")),
-                           );
-                          }
-                          },
+                      if (_emailController.text.isEmpty ||
+                          _passwordController.text.isEmpty ||
+                          _confirmPasswordController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Please fill all fields")),
+                        );
+                        return;
+                      }
+                      if (!confirmPass()) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Passwords do not match")),
+                        );
+                        return;
+                      }
+                      if (!agree) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("You must agree to the terms")),
+                        );
+                        return;
+                      }
+                      await adduser(_emailController.text.trim(), int.parse(_passwordController.text.trim()));
 
     // After successful signup, navigate to homepage
     
@@ -228,7 +230,7 @@ class SignUpPageState extends State<SignUpPage> {
                       Navigator.pop(
                           context, MaterialPageRoute(builder: (context) => Homepage())
                         );
-                    },                   const SnackBar(content: Text("Please fill all fields")),
+                    },const SnackBar(content: Text("Please fill all fields")),
                       );
               
                     child: const Text(
