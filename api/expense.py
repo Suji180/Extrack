@@ -8,7 +8,7 @@ from db import db_connection
 load = APIRouter()
 
 @load.post("/add")
-async def add_expense(add: AddExpense, file: UploadFile = File(...)):
+async def add_expense(add: AddExpense):
     conn = db_connection()
     cursor = conn.cursor()
     try:
@@ -34,7 +34,7 @@ async def upload(file: UploadFile = File(...)):
         with open(file_location, "wb") as buffer:
             content = await file.read()
             buffer.write(content)
-        return {"Message": "Image uploaded"}
+        return {"Message": "Receipt uploaded"}
 
     except Exception as e:
         return HTTPException(status_code = 500, detail = f"The error is {e}")
