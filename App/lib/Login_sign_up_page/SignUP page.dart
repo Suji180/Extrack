@@ -248,7 +248,11 @@ class SignUpPageState extends State<SignUpPage> {
                     iconSize: 40,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.email_outlined, color: Color.fromARGB(255, 92, 100, 113)),
+                    icon: Image(
+                        image: AssetImage('assets/images/google.png'),
+                        width: 40,
+                        height: 40,
+                      ),
                     onPressed: () {},
                     iconSize: 40,
                   ),
