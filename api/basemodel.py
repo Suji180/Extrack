@@ -11,3 +11,7 @@ class AddExpense(BaseModel):
 class Login(BaseModel):
     email: str
     password: str
+
+class Income(BaseModel):
+    amount: int
+    
