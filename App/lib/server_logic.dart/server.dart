@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../package:extrack/home.dart';
+import 'dart:io';
+
+
 
 Future<void> postUser(String name , String age) async{
   final url = Uri.parse("http://127.0.0.1:8000/signup");
@@ -28,7 +30,7 @@ Future<void> postUser(String name , String age) async{
 
 Future<void> postaddexpenses(String category, int amount) async{
   try{
-  final url = Uri.parse(uri);
+  final url = Uri.parse("http://127.0.0.1:8000/add");
   final response = await http.post(
     url,
     headers:{
@@ -50,4 +52,74 @@ Future<void> postaddexpenses(String category, int amount) async{
     print("error occured");
   }
  
+}
+Future<void>adduser(String email,String password)async{
+  try{
+    final url = Uri.parse("http://127.0.0.1:8000/signup");
+    final response = await http.post(
+      url,
+      headers:{
+        'Content-type': 'application/json'
+      },
+      body: jsonEncode({
+        'email' : email,
+        'password' : password,
+        
+      })
+    );
+    if(response.statusCode == 200 || response.statusCode == 201){
+      print("sign up Successfully");
+    }
+    else{
+      print("not signup ");
+    }
+  }
+  catch(e){
+    print("error occured $e");
+  }
+}
+Future<void>getuser(String email,String password)async{
+  try{
+    final url = Uri.parse("http://127.0.0.1:8000/login");
+    final response = await http.post(
+      url,
+      headers:{
+        'Content-type': 'application/json'
+      },
+      body: jsonEncode({
+        'email' : email,
+        'password' : password,
+      
+      })
+    );
+    if(response.statusCode == 200 || response.statusCode == 201){
+      print("sign in Successfully");
+    }
+    else{
+      print("not signin ");
+    }
+  }
+  catch(e){
+    print("error occured $e");
+  }
+}
+
+Future<void> postimage(String filepath) async{
+  try{
+    var url = Uri.parse("");
+    var request = http.MultipartRequest('POST', url);
+    request.files.add(
+      await http.MultipartFile.fromPath('image', filepath,)
+    );
+    var response = await request.send();
+    if(response.statusCode == 200 || response.statusCode == 201){
+      print("successfully upload image");
+    }
+    else{
+      print("not upload image");
+    }
+  }
+  catch(e){
+    print("Error uplaoding image: $e");
+  }
 }
