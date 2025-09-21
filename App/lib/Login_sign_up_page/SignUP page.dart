@@ -1,4 +1,5 @@
 
+import 'package:extrack/Login_sign_up_page/googleauth.dart';
 import 'package:extrack/Login_sign_up_page/loginpage.dart';
 import 'package:extrack/home.dart';
 import 'package:flutter/material.dart';
@@ -253,7 +254,7 @@ class SignUpPageState extends State<SignUpPage> {
                         width: 40,
                         height: 40,
                       ),
-                    onPressed: () {},
+                    onPressed: googleauth().handleSignIn,
                     iconSize: 40,
                   ),
                 ],

@@ -2,6 +2,7 @@ import 'package:extrack/Login_sign_up_page/SignUP%20page.dart';
 import 'package:extrack/home.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:extrack/Login_sign_up_page/googleauth.dart';
 
 
 
@@ -17,36 +18,9 @@ class SecondPageState extends State<SecondPage> {
 
    final _emailController = TextEditingController();
    final _passwordController = TextEditingController();
-   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: "738833372764-jfaom84ockovbjc6fhbfkfcid8gfabdr.apps.googleusercontent.com",
-    scopes : [
-      'email',
-      'password',
-      
-    ]
-   );
+ 
    
-   Future<void> _handleSignIn() async {
-    try 
-    {
-      final account = await _googleSignIn.signIn();
-      if (account!= null )
-{
-       final auth = await account.authentication;
-       print('Access Token : " ${auth.accessToken}"');
-       print('ID Token : " ${auth.idToken} "');
-
-}
-else 
-{
-  print("Sign in Aborted by user");
-}  
-  }
-    catch (e)
-    {
-       print("Failed to Sign in with google : $e");
-    }
-   }
+ 
   
   /*
   Future signIN() async {
@@ -244,7 +218,7 @@ else
                         width: 40,
                         height: 40,
                       ),
-                      onPressed: _handleSignIn,
+                      onPressed: googleauth().handleSignIn,
                       iconSize: 40,
                     ),
                   ],
