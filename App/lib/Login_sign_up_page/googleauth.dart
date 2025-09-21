@@ -5,10 +5,10 @@ import 'package:google_sign_in/google_sign_in.dart';
 class googleauth 
 {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: "738833372764-jfaom84ockovbjc6fhbfkfcid8gfabdr.apps.googleusercontent.com",
+    serverClientId: "738833372764-jfaom84ockovbjc6fhbfkfcid8gfabdr.apps.googleusercontent.com",
     scopes: [
       'email',
-      'password'
+      'profile'
     ]
  );
 
