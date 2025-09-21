@@ -1,6 +1,7 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:extrack/server_logic.dart/server.dart';
 
 class googleauth 
 {
@@ -20,6 +21,7 @@ Future<void> handleSignIn() async {
        final auth = await account.authentication;
        print('Access Token : " ${auth.accessToken}"');
        print('ID Token : " ${auth.idToken} "');
+       await google_auth(auth.accessToken!, auth.idToken!);
 
 }
 else 
@@ -34,3 +36,4 @@ else
  }
 }
 }
+

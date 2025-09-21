@@ -123,3 +123,28 @@ Future<void> postimage(String filepath) async{
     print("Error uplaoding image: $e");
   }
 }
+
+Future<void>google_auth(String accessToken,String idToken) async{
+  try{
+    final url = Uri.parse("");
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-type': 'application/json'
+      },
+      body: jsonEncode({
+        'accesstoken': accessToken,
+        'idtoken': idToken,
+      })
+       );
+       if(response.statusCode == 200 || response.statusCode == 201){
+           print("sign up Successfully");
+        }
+       else{
+          print("not signup ");
+        }     
+  }
+  catch(e){
+    print("error occured $e");
+  }
+}
