@@ -6,4 +6,4 @@ def db_connection():
     user = "testing",
     password = "962006",
     host = "127.0.0.1"
- )
+)
