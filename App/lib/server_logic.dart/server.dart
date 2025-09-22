@@ -4,7 +4,7 @@ import 'dart:io';
 
 
 Future<void> postUser(String name , String age) async{
-  final url = Uri.parse("http://127.0.0.1:8000/signup");
+  final url = Uri.parse("http://10.0.2.2:8000/signup");
   final response = await http.post(
     url,
     headers:{
@@ -52,19 +52,17 @@ Future<void> postaddexpenses(String category, int amount) async{
   }
  
 }
-Future<void>adduser(String username,int password,int phone,String email)async{
+Future<void>adduser(String email, int password)async{
   try{
-    final url = Uri.parse("");
+    final url = Uri.parse("http://127.0.0.1:8000/signup");
     final response = await http.post(
       url,
       headers:{
         'Content-type': 'application/json'
       },
       body: jsonEncode({
-        'username' : username,
-        'password' : password,
-        'phone': phone,
         'email': email,
+        'password' : password,
       })
     );
     if(response.statusCode == 200 || response.statusCode == 201){
@@ -78,16 +76,16 @@ Future<void>adduser(String username,int password,int phone,String email)async{
     print("error occured $e");
   }
 }
-Future<void>getuser(String username,int password)async{
+Future<void>getuser(String email,int password)async{
   try{
-    final url = Uri.parse("");
+    final url = Uri.parse("http://127.0.0.1:8000/login");
     final response = await http.post(
       url,
       headers:{
         'Content-type': 'application/json'
       },
       body: jsonEncode({
-        'username' : username,
+        'email': email,
         'password' : password,
       
       })

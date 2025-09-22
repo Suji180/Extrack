@@ -7,7 +7,7 @@ import 'package:extrack/server_logic.dart/server.dart';
 class googleauth 
 {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: "738833372764-jfaom84ockovbjc6fhbfkfcid8gfabdr.apps.googleusercontent.com",
+    serverClientId: "485207706280-fhngt4kc2gokku7c50uqc79ucpvl0h29.apps.googleusercontent.com",
     scopes: [
       'email',
       'profile'
