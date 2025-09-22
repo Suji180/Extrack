@@ -3,6 +3,7 @@ import 'package:extrack/Login_sign_up_page/googleauth.dart';
 import 'package:extrack/Login_sign_up_page/loginpage.dart';
 import 'package:extrack/home.dart';
 import 'package:flutter/material.dart';
+import 'package:extrack/server_logic.dart/server.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
