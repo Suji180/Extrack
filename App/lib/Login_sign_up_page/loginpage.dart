@@ -1,6 +1,7 @@
 import 'package:extrack/Login_sign_up_page/SignUP%20page.dart';
 import 'package:extrack/home.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:extrack/server_logic.dart/server.dart';
 
 
@@ -15,8 +16,10 @@ class SecondPage extends StatefulWidget {
 class SecondPageState extends State<SecondPage> {
 
    final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
+   final _passwordController = TextEditingController();
+ 
+   
+ 
   
   /*
   Future signIN() async {
@@ -210,8 +213,12 @@ class SecondPageState extends State<SecondPage> {
                       iconSize: 40,
                     ),
                     IconButton(
-                      icon: const Icon(Icons.email_outlined, color: Color.fromARGB(255, 92, 100, 113)),
-                      onPressed: () {},
+                      icon: Image(
+                        image: AssetImage('assets/images/google.png'),
+                        width: 40,
+                        height: 40,
+                      ),
+                      onPressed: googleauth().handleSignIn,
                       iconSize: 40,
                     ),
                   ],

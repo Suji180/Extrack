@@ -5,7 +5,7 @@ import 'dart:io';
 
 
 Future<void> postUser(String name , String age) async{
-  final url = Uri.parse("http://127.0.0.1:8000/signup");
+  final url = Uri.parse("http://10.0.2.2:8000/signup");
   final response = await http.post(
     url,
     headers:{
@@ -53,6 +53,7 @@ Future<void> postaddexpenses(String category, int amount) async{
   }
  
 }
+
 Future<void>adduser(String email,String password)async{
   try{
     final url = Uri.parse("http://127.0.0.1:8000/signup");
@@ -62,6 +63,7 @@ Future<void>adduser(String email,String password)async{
         'Content-type': 'application/json'
       },
       body: jsonEncode({
+
         'email' : email,
         'password' : password,
         
@@ -78,6 +80,7 @@ Future<void>adduser(String email,String password)async{
     print("error occured $e");
   }
 }
+
 Future<void>getuser(String email,String password)async{
   try{
     final url = Uri.parse("http://127.0.0.1:8000/login");
@@ -121,5 +124,30 @@ Future<void> postimage(String filepath) async{
   }
   catch(e){
     print("Error uplaoding image: $e");
+  }
+}
+
+Future<void>google_auth(String accessToken,String idToken) async{
+  try{
+    final url = Uri.parse("");
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-type': 'application/json'
+      },
+      body: jsonEncode({
+        'accesstoken': accessToken,
+        'idtoken': idToken,
+      })
+       );
+       if(response.statusCode == 200 || response.statusCode == 201){
+           print("sign up Successfully");
+        }
+       else{
+          print("not signup ");
+        }     
+  }
+  catch(e){
+    print("error occured $e");
   }
 }

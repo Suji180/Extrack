@@ -1,3 +1,5 @@
+
+import 'package:extrack/Login_sign_up_page/googleauth.dart';
 import 'package:extrack/Login_sign_up_page/loginpage.dart';
 import 'package:extrack/home.dart';
 import 'package:flutter/material.dart';
@@ -255,8 +257,12 @@ class SignUpPageState extends State<SignUpPage> {
                     iconSize: 40,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.email_outlined, color: Color.fromARGB(255, 92, 100, 113)),
-                    onPressed: () {},
+                    icon: Image(
+                        image: AssetImage('assets/images/google.png'),
+                        width: 40,
+                        height: 40,
+                      ),
+                    onPressed: googleauth().handleSignIn,
                     iconSize: 40,
                   ),
                 ],
