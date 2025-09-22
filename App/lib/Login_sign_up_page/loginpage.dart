@@ -2,10 +2,7 @@ import 'package:extrack/Login_sign_up_page/SignUP%20page.dart';
 import 'package:extrack/home.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:extrack/Login_sign_up_page/googleauth.dart';
 import 'package:extrack/server_logic.dart/server.dart';
-
-
 
 
 
@@ -158,6 +155,7 @@ class SecondPageState extends State<SecondPage> {
                         backgroundColor: const Color.fromARGB(255, 57, 116, 219),
                       ),
                       onPressed: () async {
+                        await getuser(_emailController.text.trim(), _passwordController.text.trim());
                        /* try {
                           await signIN();
                           // No need to manually navigate, Checklog will update automatically

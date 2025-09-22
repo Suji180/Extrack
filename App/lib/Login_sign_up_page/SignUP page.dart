@@ -14,32 +14,15 @@ class SignUpPage extends StatefulWidget {
 
 class SignUpPageState extends State<SignUpPage> {
   bool agree = false;
- 
-
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool confirmPass()  {
-    if (_confirmPasswordController.text.trim() == _passwordController.text.trim()) {
-      return true;
-    } else {
-      return false;
-    }
+  bool confirmPass() {
+    return _confirmPasswordController.text.trim() ==
+        _passwordController.text.trim();
   }
- /*
-  Future signUP() async {
-    if (confirmPass())
-    {
-    return await FirebaseAuth.instance.createUserWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-  
-    );
-  }
-  
-  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -57,22 +40,23 @@ class SignUpPageState extends State<SignUpPage> {
       ),
       body: Container(
         decoration: const BoxDecoration(
-            image: DecorationImage(
-          image: AssetImage('assets/bg.jpg'),
-          fit: BoxFit.cover,
-        )),
+          image: DecorationImage(
+            image: AssetImage('assets/bg.jpg'),
+            fit: BoxFit.cover,
+          ),
+        ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Title
               Center(
                 child: Container(
                   margin: const EdgeInsets.only(top: 90, bottom: 20),
                   padding: const EdgeInsets.only(left: 80, right: 90),
                   child: const Text(
                     textAlign: TextAlign.center,
-                    'Join for better '
-                    'Savings Experience',
+                    'Join for better \nSavings Experience',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -81,16 +65,22 @@ class SignUpPageState extends State<SignUpPage> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 50),
+
+              // Email field
               Container(
                 padding: const EdgeInsets.only(left: 25),
-                margin: const EdgeInsets.only(left: 25, right: 25),
+                margin: const EdgeInsets.symmetric(horizontal: 25),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black38),
+                  borderRadius: BorderRadius.circular(30),
+                ),
                 child: TextField(
                   controller: _emailController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     border: InputBorder.none,
-                    icon:
-                        Icon(Icons.mail_outline_outlined, color: Colors.black38),
+                    icon: Icon(Icons.mail_outline_outlined, color: Colors.black38),
                     hintText: 'Phone/Email id',
                     hintStyle: TextStyle(
                       color: Colors.black38,
@@ -98,20 +88,22 @@ class SignUpPageState extends State<SignUpPage> {
                     ),
                   ),
                 ),
+              ),
+
+              const SizedBox(height: 21),
+
+              // Password field
+              Container(
+                padding: const EdgeInsets.only(left: 25),
+                margin: const EdgeInsets.symmetric(horizontal: 25),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.black38),
                   borderRadius: BorderRadius.circular(30),
                 ),
-              ),
-              
-              const SizedBox(height: 21),
-              Container(
-                padding: const EdgeInsets.only(left: 25),
-                margin: const EdgeInsets.only(left: 25, right: 25),
                 child: TextField(
-            
                   controller: _passwordController,
-                  decoration: InputDecoration(
+                  obscureText: true,
+                  decoration: const InputDecoration(
                     border: InputBorder.none,
                     icon: Icon(Icons.lock_outline, color: Colors.black38),
                     hintText: 'Password',
@@ -120,28 +112,25 @@ class SignUpPageState extends State<SignUpPage> {
                       fontSize: 14,
                     ),
                   ),
-                  obscureText: true,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black38),
-                  borderRadius: BorderRadius.circular(30),
                 ),
               ),
 
               const SizedBox(height: 21),
+
+              // Confirm password field
               Container(
                 padding: const EdgeInsets.only(left: 25),
-                margin: const EdgeInsets.only(left: 25, right: 25),
+                margin: const EdgeInsets.symmetric(horizontal: 25),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.black38),
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: TextField(
                   controller: _confirmPasswordController,
-                  decoration: InputDecoration(
+                  obscureText: true,
+                  decoration: const InputDecoration(
                     border: InputBorder.none,
-                    icon:
-                        Icon(Icons.person_4_outlined, color: Colors.black38),
+                    icon: Icon(Icons.person_4_outlined, color: Colors.black38),
                     hintText: 'Confirm Password',
                     hintStyle: TextStyle(
                       color: Colors.black38,
@@ -150,7 +139,10 @@ class SignUpPageState extends State<SignUpPage> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 12),
+
+              // Agreement checkbox
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -167,9 +159,7 @@ class SignUpPageState extends State<SignUpPage> {
                     style: TextStyle(color: Colors.grey),
                   ),
                   GestureDetector(
-                    onTap: () {
-                      // Handle tap on "User Agreement Privacy Policy"
-                    },
+                    onTap: () {},
                     child: const Text(
                       ' User Agreement Privacy Policy',
                       style: TextStyle(
@@ -180,62 +170,79 @@ class SignUpPageState extends State<SignUpPage> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 21),
+
+              // Continue button
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: Container(
-                  margin: const EdgeInsets.only(left: 25, right: 25),
+                  margin: const EdgeInsets.symmetric(horizontal: 25),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          const Color.fromARGB(255, 57, 116, 219),
+                      backgroundColor: const Color.fromARGB(255, 57, 116, 219),
                     ),
                     onPressed: () async {
-                      /* try {
-                        await signUP();
-                        // Navigate to HomePage or show a success message
+                      if (_emailController.text.isEmpty ||
+                          _passwordController.text.isEmpty ||
+                          _confirmPasswordController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Please fill all fields")),
+                        );
+                        return;
+                      }
+
+                      if (!confirmPass()) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Passwords do not match")),
+                        );
+                        return;
+                      }
+
+                      try {
+                        await adduser(
+                          _emailController.text.trim(),
+                          _passwordController.text.trim(),
+                        );
+
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => Namepage()),
+                          MaterialPageRoute(builder: (context) => SecondPage()),
                         );
-                      } on FirebaseAuthException catch (e) {
+                      } catch (e) {
+                        print("Error: $e");
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(e.message ?? 'Sign up failed')),
+                          const SnackBar(content: Text("Signup failed")),
                         );
-                      } */
-                      Navigator.pop(
-                          context, MaterialPageRoute(builder: (context) => Homepage())
-                        );
-                    }, 
+                      }
+                    },
                     child: const Text(
-                      ' Continue ',
+                      'Continue',
                       style: TextStyle(
-                        color: Color.fromARGB(255, 255, 255, 255),
+                        color: Colors.white,
                         fontSize: 16,
                       ),
                     ),
                   ),
                 ),
               ),
+
               const SizedBox(height: 21),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.only(left: 13),
-                    child: const Text(
-                      '---------- Or Sign Up With ----------',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+
+              // Divider
+              const Text(
+                '---------- Or Sign Up With ----------',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+
               const SizedBox(height: 21),
+
+              // Social buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -245,7 +252,7 @@ class SignUpPageState extends State<SignUpPage> {
                     iconSize: 40,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.apple_outlined, color: Color.fromARGB(255, 0, 0, 0)),
+                    icon: const Icon(Icons.apple_outlined, color: Colors.black),
                     onPressed: () {},
                     iconSize: 40,
                   ),
@@ -260,7 +267,10 @@ class SignUpPageState extends State<SignUpPage> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 21),
+
+              // Sign in row
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
