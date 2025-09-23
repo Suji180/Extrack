@@ -15,3 +15,6 @@ class Login(BaseModel):
 class Income(BaseModel):
     amount: int
     
+class glogin(BaseModel):
+    accesstoken: str
+    idtoken: str

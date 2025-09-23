@@ -1,21 +1,16 @@
-from fastapi import FastAPI, Request, Response, status, HTTPException, APIRouter
-from db import db_connection
+from fastapi import FastAPI, Request, Response, status, HTTPException, APIRouter, Depends
+from db import get_connection
 from basemodel import Income
+import asyncpg
 
 load = APIRouter()
 
 @load.post("/income")
-async def income(add: Income):
-    conn = db_connection()
-    cursor = conn.cursor()
+async def income(add: Income, conn = Depends(get_connection)):
     try:
-        cursor.execute("INSERT INTO dashboard (income) VALUES (%s)", (add.amount,))
-        conn.commit()
+        await conn.execute("INSERT INTO dashboard (income) VALUES ($1)", add.amount,)
         return {"Message": "The Income added successfully"}
 
-    except psycopg.Error as e:
+    except asyncpg.PostgresError as e:
         raise HTTPException(status_code = 500, detail = f"Postgre Error :{e}")
-
-    finally:
-        cursor.close()
-        conn.close()
+    

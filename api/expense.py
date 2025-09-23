@@ -1,27 +1,22 @@
 from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter, UploadFile, File
 from pydantic import BaseModel
-import psycopg
+import asyncpg
 import os
 from basemodel import AddExpense
-from db import db_connection
+from db import get_connection
 
 load = APIRouter()
 
 @load.post("/add")
-async def add_expense(add: AddExpense):
-    conn = db_connection()
-    cursor = conn.cursor()
+async def add_expense(add: AddExpense, conn = Depends(get_connection)):
     try:
-        cursor.execute("INSERT INTO expenses (category, amount) VALUES (%s, %s)", (add.category, add.amount))
-        conn.commit()
+        await conn.execute("INSERT INTO expenses (category, amount) VALUES ($1, $2)", add.category, add.amount)
+
         return {"Message": "Expense added successfully"}
 
-    except psycopg.Error as error:
+    except asyncpg.PostgresError as error:
         raise HTTPException(status_code = 500, detail = f"MySQL Error : {error}")
 
-    finally:
-        cursor.close()
-        conn.close()
 
 directory = "/home/saravanesh/receipts"
 if not os.path.exists(directory):
