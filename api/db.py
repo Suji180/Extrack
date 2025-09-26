@@ -1,13 +1,17 @@
 import asyncpg
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 async def start_db():
     global db_pool
     try:
         db_pool = await asyncpg.create_pool(
-            database = "test",
-            user = "testing",
-            password = "962006",
-            host = "127.0.0.1",
+            database = os.getenv("DB_NAME"),
+            user = os.getenv("DB_USER"),
+            password = os.getenv("DB_PASSWORD"),
+            host = os.getenv("DB_HOST"),
             min_size = 1,
             max_size = 10
         )

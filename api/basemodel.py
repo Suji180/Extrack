@@ -16,5 +16,4 @@ class Income(BaseModel):
     amount: int
     
 class glogin(BaseModel):
-    accesstoken: str
-    idtoken: str
+    AuthCode: str
