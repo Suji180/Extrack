@@ -220,7 +220,7 @@ class SecondPageState extends State<SecondPage> {
                         width: 40,
                         height: 40,
                       ),
-                      onPressed: googleauth().handleSignIn,
+                      onPressed: google_auth_backend().handleSignIn,
                       iconSize: 40,
                     ),
                   ],

@@ -30,7 +30,7 @@ Future<void> postUser(String name , String age) async{
 
 Future<void> postaddexpenses(String category, int amount) async{
   try{
-  final url = Uri.parse("http://127.0.0.1:8000/add");
+  final url = Uri.parse("http://10.0.2.2:8000/add");
   final response = await http.post(
     url,
     headers:{
@@ -56,7 +56,7 @@ Future<void> postaddexpenses(String category, int amount) async{
 
 Future<void>adduser(String email,String password)async{
   try{
-    final url = Uri.parse("http://127.0.0.1:8000/signup");
+    final url = Uri.parse("http://10.0.2.2:8000/signup");
     final response = await http.post(
       url,
       headers:{
@@ -83,7 +83,7 @@ Future<void>adduser(String email,String password)async{
 
 Future<void>getuser(String email,String password)async{
   try{
-    final url = Uri.parse("http://127.0.0.1:8000/login");
+    final url = Uri.parse("http://10.0.2.2:8000/login");
     final response = await http.post(
       url,
       headers:{
@@ -127,21 +127,20 @@ Future<void> postimage(String filepath) async{
   }
 }
 
-Future<void>google_auth(String accessToken,String idToken) async{
+Future<void>google_auth(String authCode) async{
   try{
-    final url = Uri.parse("");
+    final url = Uri.parse("http://10.0.2.2:8000/glogin");
     final response = await http.post(
       url,
       headers: {
         'Content-type': 'application/json'
       },
       body: jsonEncode({
-        'accesstoken': accessToken,
-        'idtoken': idToken,
+        'AuthCode': authCode
       })
        );
        if(response.statusCode == 200 || response.statusCode == 201){
-           print("sign up Successfully");
+           print("Google signin Successfull");
         }
        else{
           print("not signup ");

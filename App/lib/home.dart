@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' as images;
 import 'package:flutter/src/widgets/container.dart';
 import 'dart:io';
 import 'package:extrack/data/expense_data.dart';
@@ -7,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:extrack/server_logic.dart/server.dart';
 import 'package:image_picker/image_picker.dart';
 
- 
 
 class Homepage extends ConsumerStatefulWidget {
   const Homepage({super.key});
@@ -201,7 +201,6 @@ class _HomepageState extends ConsumerState<Homepage> {
                   fontFamily: 'poppins',
                   color: Color.fromRGBO(217, 217, 217, 1)
                   
-         
                 ),),
                 actions: [
                   Container(
@@ -275,38 +274,76 @@ class _HomepageState extends ConsumerState<Homepage> {
                 ),
               ),
               SliverToBoxAdapter(
-         
-                child: Container(
-                  margin: const EdgeInsets.all(15),
-                  height: 30,
-                  color: Colors.transparent,
-                  child: Row(
-                    children: [
-                      Text(
-                        'Features',
-                         style: TextStyle(
-                          fontSize:16,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'poppins',
-                          
-                      )
-                      ),
-         
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () {
-                          
-                        },
-                        child: const Text(
-                          'See All',
-                          style: TextStyle(
-                            fontFamily: 'poppins',
-                            
-                            fontSize: 12
+                child: GestureDetector(
+                  onTap: () {
+
+                  },
+                  child: Container(
+                                 
+                  margin: const EdgeInsets.only(left: 15 , top: 20 , bottom:10, right: 10),
+                  padding: const EdgeInsets.only(left : 110 ,right : 5, top: 10 , bottom: 10),
+                  height: MediaQuery.of(context).size.height * 0.18,
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(10),
+                  image: const DecorationImage(image: images.AssetImage('assets/images/addincome.png'),)),
+                    child: Row(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.all(20),
+                          height: MediaQuery.of(context).size.height * 0.1,
+                          width: MediaQuery.of(context).size.width * 0.5,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            color: Colors.transparent
                           ),
-                        ),
-                      )
-                    ],
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              
+                              images.Container(
+                                margin: const EdgeInsets.all(0),
+                                padding: const EdgeInsets.only(left: 12 , right: 10,top:0.5),
+                                height: MediaQuery.of(context).size.height * 0.04,
+                                width: MediaQuery.of(context).size.width * 0.33,
+                                
+                                child: images.Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.add
+                                    ,
+                                    color: Colors.white,),
+                                    const Text('Add Income',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontFamily: 'poppins',
+                                      fontWeight: FontWeight.w100,
+                                      color: Colors.white
+                                      
+                                    )),
+                                  ],
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: 
+                                  Border.all(
+                                    color: Colors.white,
+                                    width: 1.0
+                                  )
+                  
+                  
+                                
+                                ),
+                                
+                              ),
+                  
+                  
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
                   ),
                 ),
                   
@@ -315,7 +352,8 @@ class _HomepageState extends ConsumerState<Homepage> {
                  SliverToBoxAdapter(
                   
                 child: Container (
-                  margin: const EdgeInsets.all(20),
+                
+                  margin: const EdgeInsets.only(left : 15 , right: 15, bottom: 20 , top: 10),
                   height: MediaQuery.of(context).size.height * 0.15,
                   
                   decoration: BoxDecoration(
@@ -459,9 +497,7 @@ class _HomepageState extends ConsumerState<Homepage> {
                       
                           Text(
                             '₹' + 
-                            product[index].amount,
-         
-                            
+                            product[index].amount,                           
                             style: const TextStyle(
                               fontSize: 20,
                               fontFamily: 'poppins',
@@ -471,30 +507,14 @@ class _HomepageState extends ConsumerState<Homepage> {
                         ],
                       ),
                   
-                );
-
-                
-                    
+                );   
                     },
                     childCount: product.length,
-                    
-                    
-                  ),
-                  
+                  ),   
                 ),
-         
-              
-            ],
-            
-            
+            ],           
           ),
-         
          ),
-       );
-      
-
-    
-  }
-
-  
+       );    
+  }  
 }
