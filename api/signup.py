@@ -4,7 +4,6 @@ import asyncpg
 from basemodel import Signup, Login, glogin
 from db import get_connection
 import bcrypt
-from jose import jwt
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from google_auth_oauthlib.flow import Flow
@@ -99,11 +98,39 @@ async def exchange_code(auth_code: str, conn):
                            """,
                            user_id, name, email_id, refresh_token
                         )
-        return {"Message": "Sign-in Successful"}
+        
+        # custom_jwt = create_jwt(user_id = user_id, email = email_id)
+
+        return {"Message": "Sign-in Successful", "session_token": custom_jwt}
+
     
     except Exception as e:
         print(f"Token Exchange failed : {e}")
         return {"Error": f"Authentication Failed : {e}"}, 401
+
+import datetime, jwt
+jwt_secret_key = os.getenv("JWT_SECRET_KEY")
+jwt_algorithm = os.getenv("JWT_ALGORITHM")
+
+def create_jwt(user_id: str, email: str) -> str:
+    exp_time = datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    payload = {
+        "exp": exp_time,
+        "iat": datetime.datetime.utcnow(),
+        "sub": user_id,
+        "email": email,
+        "session_type": "custom"
+    }
+
+    encoded_jwt = jwt.encode(
+        payload,
+        jwt_secret_key,
+        algorithm = jwt_algorithm
+    )
+
+    print(encoded_jwt)
+
+    return encoded_jwt
 
 @load.post("/glogin")
 async def google_login(token: glogin, conn = Depends(get_connection)):
