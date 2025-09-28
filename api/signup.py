@@ -7,6 +7,10 @@ import bcrypt
 from jose import jwt
 from google.oauth2 import id_token
 from google.auth.transport import requests
+from google_auth_oauthlib.flow import Flow
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 load = APIRouter()
 
@@ -41,27 +45,71 @@ async def login(user: Login, conn = Depends(get_connection)):
         raise HTTPException(status_code = 500, detail = f"{e}")
 
 
+CLIENT_ID = "485207706280-fhngt4kc2gokku7c50uqc79ucpvl0h29.apps.googleusercontent.com"
+CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+REDIRECT_URI = "https://oauth2.googleapis.com/token" 
+TOKEN_URI = "https://oauth2.googleapis.com/token"
+AUTH_URI = "https://accounts.google.com/o/oauth2/auth"
+
+async def exchange_code(auth_code: str, conn):
+    if not auth_code:
+        return {"Error": "Missing Auth code"}, 400
+    
+    try:
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                "token_uri" : TOKEN_URI,
+                "auth_uri": AUTH_URI,
+                "client_id" : CLIENT_ID,
+                "client_secret" : CLIENT_SECRET,
+                }
+            },
+            scopes=['https://www.googleapis.com/auth/userinfo.email',
+                'https://www.googleapis.com/auth/userinfo.profile',
+                'openid' ],
+            redirect_uri = REDIRECT_URI
+
+        )
+        flow.fetch_token(code=auth_code)
+        tokens = flow.credentials
+
+        refresh_token = tokens.refresh_token
+        id_token_jwt = tokens.id_token
+        access_token = tokens.token
+
+        if not id_token_jwt:
+            return {"Message": "Failed to get the id_token from Google"}, 500
+        
+        user_data = id_token.verify_oauth2_token(
+            id_token_jwt,
+            requests.Request(),
+            CLIENT_ID
+        )
+
+        user_id = user_data.get("sub")
+        name = user_data.get("name")
+        email_id = user_data.get("email")
+
+        await conn.execute("""
+                           INSERT INTO gauth (id, name, email_id, refresh_token) 
+                           VALUES ($1, $2, $3, $4) 
+                           ON CONFLICT (id) DO UPDATE 
+                           SET refresh_token = EXCLUDED.refresh_token;
+                           """,
+                           user_id, name, email_id, refresh_token
+                        )
+        return {"Message": "Sign-in Successful"}
+    
+    except Exception as e:
+        print(f"Token Exchange failed : {e}")
+        return {"Error": f"Authentication Failed : {e}"}, 401
+
 @load.post("/glogin")
 async def google_login(token: glogin, conn = Depends(get_connection)):
+    auth_code = token.AuthCode
     try:
-        await conn.execute("INSERT INTO gauth (authcode) VALUES ($1)", token.AuthCode)
-        return {"Message": "Google signin successful"}
+        await exchange_code(auth_code, conn)
 
-    except asyncpg.PostgresError as e:
-        raise HTTPException(status_code = 500, detail= f"DB Error : {e}")
-
-client_id = "485207706280-fhngt4kc2gokku7c50uqc79ucpvl0h29.apps.googleusercontent.com"
-
-@load.get("/token/{id}")
-async def get_id_token(id : int, conn = Depends(get_connection)):
-    try:
-        idtoken = await conn.fetchrow("SELECT id_token FROM gauth WHERE id = $1", id,)
-        token = idtoken[0]
-    except asyncpg.PostgresError as e:
-        print(f"DB Error : {e}")
-
-    user_data = id_token.verify_oauth2_token(token, requests.Request(), client_id)
-
-    return {"Data": user_data}
-
-
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail= f"{e}")
