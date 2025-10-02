@@ -26,7 +26,9 @@ if (account!= null ) {
             print('Server Auth Code: "$authCode"');
             
             // Send the one-time authcode to your backend
-            await google_auth(authCode); 
+            final response = await google_auth(authCode); 
+            print(response);
+            
 
        } else {
             print("Error: Server Auth Code not received.");
