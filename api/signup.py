@@ -10,7 +10,6 @@ from google_auth_oauthlib.flow import Flow
 from dotenv import load_dotenv
 import os
 load_dotenv()
-
 load = APIRouter()
 
 @load.post("/signup")
@@ -72,8 +71,10 @@ async def exchange_code(auth_code: str, conn):
         )
         flow.fetch_token(code=auth_code)
         tokens = flow.credentials
+        print(tokens)
 
         refresh_token = tokens.refresh_token
+        print(refresh_token)
         id_token_jwt = tokens.id_token
         access_token = tokens.token
 
@@ -99,11 +100,9 @@ async def exchange_code(auth_code: str, conn):
                            user_id, name, email_id, refresh_token
                         )
         
-        # custom_jwt = create_jwt(user_id = user_id, email = email_id)
+        custom_jwt = create_jwt(user_id = user_id, email = email_id)
+        return {"session_token": custom_jwt}
 
-        return {"Message": "Sign-in Successful", "session_token": custom_jwt}
-
-    
     except Exception as e:
         print(f"Token Exchange failed : {e}")
         return {"Error": f"Authentication Failed : {e}"}, 401
@@ -128,15 +127,15 @@ def create_jwt(user_id: str, email: str) -> str:
         algorithm = jwt_algorithm
     )
 
-    print(encoded_jwt)
-
     return encoded_jwt
 
 @load.post("/glogin")
 async def google_login(token: glogin, conn = Depends(get_connection)):
     auth_code = token.AuthCode
     try:
-        await exchange_code(auth_code, conn)
+        data = await exchange_code(auth_code, conn)
+        print(data["session_token"])
+        return {"session_token": data["session_token"]}
 
     except Exception as e:
         raise HTTPException(status_code = 500, detail= f"{e}")
