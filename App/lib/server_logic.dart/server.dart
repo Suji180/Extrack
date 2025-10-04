@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:convert' as response;
 import 'package:http/http.dart' as http;
 import 'dart:io';
 
@@ -139,8 +140,11 @@ Future<void>google_auth(String authCode) async{
         'AuthCode': authCode
       })
        );
+       
        if(response.statusCode == 200 || response.statusCode == 201){
            print("Google signin Successfull");
+           var jsonresponse = json.decode(response.body);
+           print(jsonresponse["session_token"]);
         }
        else{
           print("not signup ");
