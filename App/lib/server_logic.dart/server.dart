@@ -154,3 +154,30 @@ Future<void>google_auth(String authCode) async{
     print("error occured $e");
   }
 }
+Future<void>addincome(String salaryType, int salaryAmount, String salarydata ) async{
+  try{
+    final url = Uri.parse("");
+    final response = await http.post(salaryType,
+    url,
+    headers: {
+      'Content-type': 'application/json'
+    },
+    body: jsonEncode({
+      'salaryType': salaryType,
+      'salaryAmount': salaryAmount,
+      'salarydata': salarydata,
+    })
+    );
+    if(response.statusCode == 200 || response.statusCode == 201){
+      print("Income added Successfully");
+
+    }
+    else{
+      print("income not added");
+    }
+    }
+    catch(e){
+      print("error occured $e");
+    }
+  
+}
