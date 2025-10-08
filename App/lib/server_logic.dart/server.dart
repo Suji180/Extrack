@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:convert' as response;
 import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 //New bracnh created name : frontend
 
@@ -145,19 +146,30 @@ Future<void>google_auth(String authCode) async{
            print("Google signin Successfull");
            var jsonresponse = json.decode(response.body);
            print(jsonresponse["session_token"]);
+          await savetoken(jsonresponse["session_token"]);
         }
        else{
           print("not signup ");
         }     
   }
+
   catch(e){
     print("error occured $e");
   }
 }
+Future<void>savetoken(String token) async{
+  final storage = FlutterSecureStorage();
+  await storage.write(key: 'session_token', value: token);
+}
+Future<void>gettoken() async{
+  final storage = FlutterSecureStorage();
+  print(await storage.read(key: 'session_token'));
+}
+
 Future<void>addincome(String salaryType, int salaryAmount, String salarydata ) async{
   try{
     final url = Uri.parse("");
-    final response = await http.post(salaryType,
+    final response = await http.post(
     url,
     headers: {
       'Content-type': 'application/json'
