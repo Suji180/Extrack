@@ -12,7 +12,10 @@ const Salary({super.key});
 
 class _SalaryState extends State<Salary> {
 
-TextEditingController salaryType = TextEditingController();
+
+final TextEditingController salaryType = TextEditingController();
+final TextEditingController salaryAmount = TextEditingController();
+final TextEditingController salaryDate = TextEditingController();
 @override
 Widget build(BuildContext context) 
 {
@@ -71,13 +74,15 @@ Widget build(BuildContext context)
               
               
                TextField(
+                controller: salaryAmount,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   label: const Text('Salary Amount'),
-                  hintText: 'As per Type'
+                  hintText: 'Enter Amount'
                 ),
               ),
                TextField(
+                controller: salaryDate,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   label: const Text('Choose Date'),
