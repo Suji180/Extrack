@@ -159,7 +159,9 @@ Future<void>google_auth(String authCode) async{
 }
 Future<void>savetoken(String token) async{
   final storage = FlutterSecureStorage();
+  final expiryDate = DateTime.now().add(const Duration(days: 7));
   await storage.write(key: 'session_token', value: token);
+  await storage.write(key: 'session_token', value: expiryDate.toIso8601String());
 }
 Future<void>gettoken() async{
   final storage = FlutterSecureStorage();
