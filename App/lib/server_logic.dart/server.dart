@@ -163,18 +163,26 @@ Future<void>savetoken(String token) async{
   await storage.write(key: 'session_token', value: token);
   await storage.write(key: 'session_token', value: expiryDate.toIso8601String());
 }
-Future<void>gettoken() async{
+Future<String?>gettoken() async{
   final storage = FlutterSecureStorage();
-  print(await storage.read(key: 'session_token'));
+  return await storage.read(key: 'session_token');
 }
+
 
 Future<void>addincome(String salaryType, int salaryAmount, String salarydata ) async{
   try{
+    String? token = gettoken() as String?;
+    if(token == null){
+      print("No token found. user mat no be logged in or token is expired");
+      return;
+    }
+
     final url = Uri.parse("");
     final response = await http.post(
     url,
     headers: {
-      'Content-type': 'application/json'
+      'Content-type': 'application/json',
+      'Authorization': 'Bearer $token'
     },
     body: jsonEncode({
       'salaryType': salaryType,
