@@ -1,3 +1,4 @@
+import 'package:extrack/salary.dart';
 import 'package:flutter/material.dart' as images;
 import 'package:flutter/src/widgets/container.dart';
 import 'dart:io';
@@ -276,17 +277,23 @@ class _HomepageState extends ConsumerState<Homepage> {
               SliverToBoxAdapter(
                 child: GestureDetector(
                   onTap: () {
-
+                        Navigator.push(context ,MaterialPageRoute(builder: (context) => const Salary()));
                   },
                   child: Container(
-                                 
+                   clipBehavior: Clip.hardEdge,              
                   margin: const EdgeInsets.only(left: 15 , top: 20 , bottom:10, right: 10),
-                  padding: const EdgeInsets.only(left : 110 ,right : 5, top: 10 , bottom: 10),
+                  padding: const EdgeInsets.only(left : 110 , top: 10 , bottom: 10),
                   height: MediaQuery.of(context).size.height * 0.18,
                   width: MediaQuery.of(context).size.width * 0.9,
                   decoration: BoxDecoration(borderRadius: BorderRadius.circular(10),
-                  image: const DecorationImage(image: images.AssetImage('assets/images/addincome.png'),)),
+                  image: const 
+                  DecorationImage(image: images.AssetImage('assets/images/addincome.png'),
+                  fit: BoxFit.fitWidth,
+                  
+                  )),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Container(
                           margin: const EdgeInsets.all(20),
@@ -302,13 +309,14 @@ class _HomepageState extends ConsumerState<Homepage> {
                             children: [
                               
                               images.Container(
-                                margin: const EdgeInsets.all(0),
-                                padding: const EdgeInsets.only(left: 12 , right: 10,top:0.5),
+                                margin: const EdgeInsets.only(left: 80, top : 0.5),
+                                padding: const EdgeInsets.only(top:0.5),
                                 height: MediaQuery.of(context).size.height * 0.04,
-                                width: MediaQuery.of(context).size.width * 0.33,
+                                width: MediaQuery.of(context).size.width * 0.37,
+                                
                                 
                                 child: images.Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.values[5],
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     const Icon(Icons.add
