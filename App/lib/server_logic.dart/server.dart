@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:convert' as response;
 import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 //New bracnh created name : frontend
 
@@ -145,12 +146,60 @@ Future<void>google_auth(String authCode) async{
            print("Google signin Successfull");
            var jsonresponse = json.decode(response.body);
            print(jsonresponse["session_token"]);
+          await savetoken(jsonresponse["session_token"]);
         }
        else{
           print("not signup ");
         }     
   }
+
   catch(e){
     print("error occured $e");
   }
+}
+Future<void>savetoken(String token) async{
+  final storage = FlutterSecureStorage();
+  final expiryDate = DateTime.now().add(const Duration(days: 7));
+  await storage.write(key: 'session_token', value: token);
+  await storage.write(key: 'session_token', value: expiryDate.toIso8601String());
+}
+Future<String?>gettoken() async{
+  final storage = FlutterSecureStorage();
+  return await storage.read(key: 'session_token');
+}
+
+
+Future<void>addincome(String salaryType, int salaryAmount, String salarydata ) async{
+  try{
+    String? token = gettoken() as String?;
+    if(token == null){
+      print("No token found. user mat no be logged in or token is expired");
+      return;
+    }
+
+    final url = Uri.parse("");
+    final response = await http.post(
+    url,
+    headers: {
+      'Content-type': 'application/json',
+      'Authorization': 'Bearer $token'
+    },
+    body: jsonEncode({
+      'salaryType': salaryType,
+      'salaryAmount': salaryAmount,
+      'salarydata': salarydata,
+    })
+    );
+    if(response.statusCode == 200 || response.statusCode == 201){
+      print("Income added Successfully");
+
+    }
+    else{
+      print("income not added");
+    }
+    }
+    catch(e){
+      print("error occured $e");
+    }
+  
 }
