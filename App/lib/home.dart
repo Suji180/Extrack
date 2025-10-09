@@ -265,9 +265,13 @@ class _HomepageState extends ConsumerState<Homepage> {
                         width: MediaQuery.of(context).size.width * 1.7,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          color: Colors.white
-         
+                          color: Colors.white,
+                         image : const DecorationImage(
+                          image: AssetImage('assets/images/homepage.png'),
+                          fit: BoxFit.fitWidth
+                        )
                         ),
+                       
                       ),
                       
                     ],
@@ -387,7 +391,8 @@ class _HomepageState extends ConsumerState<Homepage> {
                         child: IconButton(
                           icon: const Icon(Icons.add_circle_outline_outlined,
                           color: Color.fromRGBO(238, 130, 238, 1),),
-                          onPressed: addExpense,
+                          onPressed: 
+                          addExpense,
                           iconSize: 30,
                         ),
                       ),

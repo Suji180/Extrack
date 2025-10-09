@@ -22,7 +22,7 @@ Widget build(BuildContext context)
   return MaterialApp(
     home: Scaffold(
       appBar: AppBar(
-        leading: IconButton(icon: BackButton(),
+        leading: IconButton(icon: const Icon(Icons.arrow_back),
         onPressed: () {
           Navigator.pop(context);
         },),
@@ -85,14 +85,25 @@ Widget build(BuildContext context)
                 controller: salaryDate,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
-                  label: const Text('Choose Date'),
+                  label: const Text('Salary Date'),
                   hintText: 'DD/MM/YYYY'
                 ),
               ),
             ],
           ),
         ),
-      ))
+      ),
+      floatingActionButton: FloatingActionButton(
+         onPressed: () {
+           setState(() {
+            Salarydata().Amount= salaryAmount.text == '' ? 0 : double.tryParse(salaryAmount.text) ?? 0;
+            Salarydata().date= salaryDate.text;
+            Navigator.pop(context);
+           });
+         },
+         child: const Icon(Icons.save_alt_outlined),
+      ),
+      )
   );
     
   
