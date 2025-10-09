@@ -169,25 +169,25 @@ Future<String?>gettoken() async{
 }
 
 
-Future<void>addincome(String salaryType, int salaryAmount, String salarydata ) async{
+Future<void>addincome(String salaryType, int salaryAmount, String salaryDate) async{
   try{
-    String? token = gettoken() as String?;
-    if(token == null){
-      print("No token found. user mat no be logged in or token is expired");
-      return;
-    }
+    // String? token = gettoken() as String?;
+    // if(token == null){
+    //   print("No token found. user mat no be logged in or token is expired");
+    //   return;
+    // }
 
-    final url = Uri.parse("");
+    final url = Uri.parse("http://10.0.2.2:8000/income");
     final response = await http.post(
     url,
     headers: {
       'Content-type': 'application/json',
-      'Authorization': 'Bearer $token'
+      // 'Authorization': 'Bearer $token'
     },
     body: jsonEncode({
       'salaryType': salaryType,
       'salaryAmount': salaryAmount,
-      'salarydata': salarydata,
+      'salaryDate': salaryDate,
     })
     );
     if(response.statusCode == 200 || response.statusCode == 201){
