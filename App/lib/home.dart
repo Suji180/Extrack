@@ -138,16 +138,29 @@ class _HomepageState extends ConsumerState<Homepage> {
       },
     );
   }
+  XFile? _pickedImage;
 
   Future _pickImageFromGallery() async {
     final returnedimage = await ImagePicker().pickImage(source: ImageSource.gallery);
-    setState(() {
+    if(returnedimage != null){
+      setState(() {
+        _pickedImage = returnedimage;
      
     });
+      
+    }
+    
   }
 
   Future _pickImageFromCamera() async {
     final returnedcam = await ImagePicker().pickImage(source: ImageSource.camera);
+    if(returnedcam != null){
+      setState(() {
+        _pickedImage = returnedcam;
+     
+    });
+      
+    }
   }
   void add() 
   {
@@ -161,6 +174,7 @@ class _HomepageState extends ConsumerState<Homepage> {
       
      );
      postaddexpenses(newexpenseNameController.text, int.tryParse(newexpenseAmountController.text) ?? 0);
+     postimage(_pickedImage!.path);
 
      clear();
      // close the dialog 
