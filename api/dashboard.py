@@ -8,7 +8,8 @@ load = APIRouter()
 @load.post("/income")
 async def income(add: Income, conn = Depends(get_connection)):
     try:
-        await conn.execute("INSERT INTO dashboard (income) VALUES ($1)", add.amount,)
+        await conn.execute("INSERT INTO dashboard (type, amount, date) VALUES ($1, $2, $3)", 
+                           add.salaryType, add.salaryAmount, add.salaryDate)
         return {"Message": "The Income added successfully"}
 
     except asyncpg.PostgresError as e:
