@@ -30,31 +30,6 @@ Future<void> postUser(String name , String age) async{
 //   postUser("Saravanesh", "21");
 // }
 
-Future<void> postaddexpenses(String category, int amount) async{
-  try{
-  final url = Uri.parse("http://10.0.2.2:8000/add");
-  final response = await http.post(
-    url,
-    headers:{
-      'Content-type': 'application/json'
-    },
-    body: jsonEncode({
-      'category': category,
-      'amount': amount,
-    }),
-  );
-  if(response.statusCode == 200 || response.statusCode == 201){
-    print("user add expense successfully");
-  }
-  else{
-    print("user not add expense");
-  }
-  }
-  catch(e){
-    print("error occured");
-  }
- 
-}
 
 Future<void>adduser(String email,String password)async{
   try{
@@ -109,23 +84,26 @@ Future<void>getuser(String email,String password)async{
   }
 }
 
-Future<void> postimage(String filepath) async{
+Future<void> postexpenses(String category, int amount, String receipt, String filepath) async{
   try{
-    var url = Uri.parse("");
+    var url = Uri.parse("http://10.0.2.2:8000/add");
     var request = http.MultipartRequest('POST', url);
+    request.fields['category'] = category;
+    request.fields['amount'] = amount.toString();
+    request.fields['receipt'] = receipt;
     request.files.add(
       await http.MultipartFile.fromPath('image', filepath,)
     );
     var response = await request.send();
     if(response.statusCode == 200 || response.statusCode == 201){
-      print("successfully upload image");
+      print("Expense added successfully");
     }
     else{
-      print("not upload image");
+      print("Expense adding failed");
     }
   }
   catch(e){
-    print("Error uplaoding image: $e");
+    print("Error Adding expense: $e");
   }
 }
 
@@ -161,28 +139,42 @@ Future<void>savetoken(String token) async{
   final storage = FlutterSecureStorage();
   final expiryDate = DateTime.now().add(const Duration(days: 7));
   await storage.write(key: 'session_token', value: token);
-  await storage.write(key: 'session_token', value: expiryDate.toIso8601String());
+  await storage.write(key: 'session_expiry', value: expiryDate.toIso8601String());
 }
 Future<String?>gettoken() async{
   final storage = FlutterSecureStorage();
-  return await storage.read(key: 'session_token');
+  final token = await storage.read(key: 'session_token');
+  final expiryDateString = await storage.read(key: 'session_expiry');
+
+  if (token == null || expiryDateString == null){
+    return null;
+  }
+
+  final expiryDate = DateTime.tryParse(expiryDateString);
+
+  if(expiryDate == null || expiryDate.isBefore(DateTime.now())) {
+    print("Got token but it's expired on Device !");
+    return null;
+  }
+  return token;
 }
 
 
 Future<void>addincome(String salaryType, int salaryAmount, String salaryDate) async{
   try{
-    // String? token = gettoken() as String?;
-    // if(token == null){
-    //   print("No token found. user mat no be logged in or token is expired");
-    //   return;
-    // }
+    String? token = await gettoken();
+    print(token);
+    if(token == null){
+      print("No token found. user mat no be logged in or token is expired");
+      return;
+    }
 
     final url = Uri.parse("http://10.0.2.2:8000/income");
     final response = await http.post(
     url,
     headers: {
       'Content-type': 'application/json',
-      // 'Authorization': 'Bearer $token'
+      'Authorization': 'Bearer $token'
     },
     body: jsonEncode({
       'salaryType': salaryType,
