@@ -168,6 +168,7 @@ Future<void>addincome(String salaryType, int salaryAmount, String salaryDate) as
       print("No token found. user mat no be logged in or token is expired");
       return;
     }
+    
 
     final url = Uri.parse("http://10.0.2.2:8000/income");
     final response = await http.post(
