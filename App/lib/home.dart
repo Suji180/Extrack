@@ -57,7 +57,7 @@ class _HomepageState extends ConsumerState<Homepage> {
                 ),
 
                 TextField(
-                  
+                  controller: newreceiptNameController,
                   decoration: const InputDecoration(
                     labelText: 'Receipt',
                     hintText: 'Type your receipt name',
@@ -173,8 +173,7 @@ class _HomepageState extends ConsumerState<Homepage> {
       )
       
      );
-     postaddexpenses(newexpenseNameController.text, int.tryParse(newexpenseAmountController.text) ?? 0);
-     postimage(_pickedImage!.path);
+     postexpenses(newexpenseNameController.text, int.tryParse(newexpenseAmountController.text) ?? 0, newreceiptNameController.text, _pickedImage!.path);
 
      clear();
      // close the dialog 
