@@ -21,6 +21,8 @@ class _HomepageState extends ConsumerState<Homepage> {
     final TextEditingController newexpenseNameController = TextEditingController();
     final TextEditingController newexpenseAmountController = TextEditingController();
     final TextEditingController newreceiptNameController = TextEditingController();
+    bool isuiupdated = true;
+    int? totalBalance;
     File ? selectedimage;
     void addExpense() {
     showDialog(
@@ -198,6 +200,7 @@ class _HomepageState extends ConsumerState<Homepage> {
   Widget build(BuildContext context,) {
     final product = ref.watch(expenseDataProvider);
     
+    
     return 
        Consumer(
          builder: (BuildContext context, WidgetRef ref, Widget? child) 
@@ -292,53 +295,65 @@ class _HomepageState extends ConsumerState<Homepage> {
                 ),
               ),
               SliverToBoxAdapter(
-                child: GestureDetector(
-                  onTap: () {
-                        Navigator.push(context ,MaterialPageRoute(builder: (context) => const Salary()));
-                  },
-                  child: Container(
-                   clipBehavior: Clip.hardEdge,              
-                  margin: const EdgeInsets.only(left: 15 , top: 20 , bottom:10, right: 10),
-                  padding: const EdgeInsets.only(left : 110 , top: 10 , bottom: 10),
-                  height: MediaQuery.of(context).size.height * 0.18,
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(10),
-                  image: const 
-                  DecorationImage(image: images.AssetImage('assets/images/addincome.png'),
-                  fit: BoxFit.fitWidth,
-                  
-                  )),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.all(20),
-                          height: MediaQuery.of(context).size.height * 0.1,
-                          width: MediaQuery.of(context).size.width * 0.5,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.transparent
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
+                child: isuiupdated ? Container(
+                            
+                margin: const EdgeInsets.only(left: 15 , top: 20 , bottom:10, right: 10),
+                padding: const EdgeInsets.only(left : 110 , top: 10 , bottom: 10),
+                height: MediaQuery.of(context).size.height * 0.18,
+                width: MediaQuery.of(context).size.width * 0.9,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(10),
+                image: const 
+                DecorationImage(image: images.AssetImage('assets/images/addincome.png'),
+                fit: BoxFit.fitWidth,
+                
+                )),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.all(20),
+                        height: MediaQuery.of(context).size.height * 0.1,
+                        width: MediaQuery.of(context).size.width * 0.5,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.transparent
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            
+                            GestureDetector(
+                                 onTap: () async {
+                   
+                        final result = await Navigator.push(context ,MaterialPageRoute(builder: (context) => const Salary()));
+                          if(result != null)
+                          {
+                            setState(() {
                               
-                              images.Container(
+                             totalBalance = result['amount'] as int?;
+                             isuiupdated = false;
+                              
+                            });
+                          }
+             
+                  },
+                              child: Container(
                                 margin: const EdgeInsets.only(left: 80, top : 0.5),
-                                padding: const EdgeInsets.only(top:0.5),
+                                padding: const EdgeInsets.only(top:0.5,right: 1.7),
                                 height: MediaQuery.of(context).size.height * 0.04,
                                 width: MediaQuery.of(context).size.width * 0.37,
                                 
                                 
-                                child: images.Row(
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.values[5],
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     const Icon(Icons.add
                                     ,
-                                    color: Colors.white,),
+                                    color: Colors.white,
+                                    size: 18,),
                                     const Text('Add Income',
                                     style: TextStyle(
                                       fontSize: 14,
@@ -356,21 +371,133 @@ class _HomepageState extends ConsumerState<Homepage> {
                                     color: Colors.white,
                                     width: 1.0
                                   )
-                  
-                  
+                                              
+                                              
                                 
                                 ),
                                 
                               ),
-                  
-                  
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
+                            ),
+                
+                
+                          ],
+                        ),
+                      )
+                    ],
                   ),
-                ),
+                )
+                : 
+                 Column(
+                              children: [
+                                Container(
+                                  margin: const EdgeInsets.only(left: 15 , top: 20 , bottom:10, right: 10),
+                        
+                height: MediaQuery.of(context).size.height * 0.12,
+                width: MediaQuery.of(context).size.width * 0.9,
+                                 decoration: BoxDecoration(
+                                   color:  const images.Color.fromARGB(255, 233, 233, 255),
+                                   borderRadius: BorderRadius.circular(5)
+                                 ),
+                
+                                  child: Row(
+                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 10),
+                                            child: Text("Total Balance \t ",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontFamily: 'poppins',
+                                              
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black54
+                                            ),
+                                            textAlign: TextAlign.start,),
+                                          ),
+                                           
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 10),
+                                        child: Text('₹${totalBalance.toString()}',
+                                        textAlign: TextAlign.left,
+                                        style: TextStyle(
+                                          fontSize: 23,
+                                          fontFamily: 'poppins',
+                                          fontWeight: FontWeight.bold,
+                                          color: const images.Color.fromARGB(255, 0, 0, 0),
+                                        ),
+                                        ),
+                                      ),
+                                        ],
+                                      ), 
+                                    const Spacer(),
+                      Container(
+                      height: MediaQuery.of(context).size.height * 0.04,
+                      width: MediaQuery.of(context).size.width * 0.18,
+                       margin: const EdgeInsets.only(right: 5,top: 13),
+                       padding: const EdgeInsets.only(left: 5),
+                      
+                      decoration: BoxDecoration(
+                          color: Color.fromRGBO(52, 49, 199, 1),
+                        borderRadius: BorderRadius.circular(50)
+                                   
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Text('May',
+                          style: TextStyle(
+                            color: Colors.white
+                          ),
+                          ),
+                          Icon(Icons.keyboard_arrow_down_rounded,
+                          color: Colors.white,)
+                        ],
+                      ),
+                      
+                      
+                      ),
+                      Container(
+                      height: MediaQuery.of(context).size.height * 0.04,
+                      width: MediaQuery.of(context).size.width * 0.1,
+                      margin: const EdgeInsets.only(right: 10,top: 13),
+                      
+                 
+                      decoration: BoxDecoration(
+                        color: Color.fromRGBO(64, 123, 255,0.1),
+                        shape: BoxShape.circle                    
+                      ),
+                      child:IconButton(
+                        icon: Icon(Icons.list_rounded,
+                        color: images.Color.fromRGBO(0, 0, 0, 1),),
+                         
+                        onPressed: null,
+                        iconSize: 13,
+                      ),
+                    ),
+                    
+                
+                                     
+                                                                             
+                                      
+                
+                                      
+                
+                                    ],
+                                  ),
+                                  
+                                )
+                                , 
+                                SizedBox(height: MediaQuery.of(context).size.height*0.01,),
+                              
+                              ],
+                            ),
+        
+
                   
                 )
                 ,
