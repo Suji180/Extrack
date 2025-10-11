@@ -12,17 +12,19 @@ load_dotenv()
 load = APIRouter()
 
 @load.post("/income")
-async def income(add: Income, auth: str = Header(None), conn = Depends(get_connection)):
+async def income(add: Income, conn = Depends(get_connection), auth: str = Header(None, alias="Authorization")):
     print(auth)
     if not auth or not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail= "Auth header must be provided in Bearer token format")
     
     jwt_token = auth.split(" ")[1]
-    print(jwt_token)
     uid = get_user_id(jwt_token)
+    print(f"Type: {add.salaryType}")
+    print(f"Amount: {add.salaryAmount}")
+    print(f"Date: {add.salaryDate}")
     try:
-        await conn.execute("INSERT INTO dashboard (type, amount, date) VALUES ($1, $2, $3) WHERE id = $4", 
-                           add.salaryType, add.salaryAmount, add.salaryDate, uid)
+        await conn.execute("INSERT INTO dashboard (id, type, amount, date) VALUES ($1, $2, $3, $4)",
+                           uid, add.salaryType, add.salaryAmount, add.salaryDate)
         return {"Message": "The Income added successfully"}
 
     except asyncpg.PostgresError as e:
@@ -35,14 +37,10 @@ def get_user_id(jwt_token):
     data = jwt.decode(
         jwt_token,
         jwt_secret_key,
-        algorithm = jwt_algorithm
+        algorithms = [jwt_algorithm]
     )
 
     uid = data.get("sub")
-    jwt_exp = data.get("exp")
 
-    if jwt_exp < time.time():
-        raise HTTPException(status_code= 401, detail= "Token Expired")
-    else:
-        return uid
+    return uid
 
