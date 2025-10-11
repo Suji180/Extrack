@@ -1,6 +1,8 @@
 import 'Salarycalc/salarydata.dart';
 import 'package:flutter/material.dart';
 import 'package:extrack/server_logic.dart/server.dart';
+// import 'dart:convert';
+// import 'package:http/http.dart' as http;
 
 class Salary extends StatefulWidget {
   const Salary({super.key});
@@ -8,11 +10,25 @@ class Salary extends StatefulWidget {
   @override
   State<Salary> createState() => _SalaryState();
 }
-
 class _SalaryState extends State<Salary> {
-  final TextEditingController salaryType = TextEditingController();
   final TextEditingController salaryAmount = TextEditingController();
   final TextEditingController salaryDate = TextEditingController();
+
+  // Single instance of Salarydata
+  final Salarydata salaryData = Salarydata();
+
+  // Default dropdown value
+  final List<String> salaryTypes = ['Monthly', 'Yearly', 'Weekly', 'Daily'];
+
+  @override
+  void initState() {
+    super.initState();
+    // Set default value if null
+    if (salaryData.salaryType == null) {
+      salaryData.salaryType = salaryTypes[0]; // default to "Monthly"
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -31,7 +47,6 @@ class _SalaryState extends State<Salary> {
             margin: const EdgeInsets.all(20),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-
               children: [
                 DropdownButtonFormField<String>(
                   decoration: InputDecoration(
@@ -39,9 +54,8 @@ class _SalaryState extends State<Salary> {
                     label: const Text('Salary Type'),
                     hintText: 'Select Type',
                   ),
-
-                  value: Salarydata().salaryType,
-                  items: ['Monthly', 'Yearly', 'Weekly', 'Daily']
+                  value: salaryData.salaryType, // current selected type
+                  items: salaryTypes
                       .map(
                         (saltype) => DropdownMenuItem(
                           value: saltype,
@@ -49,14 +63,12 @@ class _SalaryState extends State<Salary> {
                         ),
                       )
                       .toList(),
-
                   onChanged: (value) {
                     setState(() {
-                      Salarydata().salaryType = value;
+                      salaryData.salaryType = value; // update the selected type
                     });
                   },
                 ),
-
                 TextField(
                   controller: salaryAmount,
                   decoration: InputDecoration(
@@ -64,6 +76,7 @@ class _SalaryState extends State<Salary> {
                     label: const Text('Salary Amount'),
                     hintText: 'Enter Amount',
                   ),
+                  keyboardType: TextInputType.number,
                 ),
                 TextField(
                   controller: salaryDate,
@@ -79,23 +92,31 @@ class _SalaryState extends State<Salary> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            setState(() {
-              Salarydata().Amount = salaryAmount.text == ''
-                  ? 0
-                  : double.tryParse(salaryAmount.text) ?? 0;
-              Salarydata().date = salaryDate.text;
+            // Update Salarydata instance
+            salaryData.Amount = double.tryParse(salaryAmount.text) ?? 0;
+            salaryData.date = salaryDate.text;
 
-              Navigator.pop(context, {
-                'type': Salarydata().salaryType ?? '',
-                'amount': salaryAmount.text == ''
-                    ? 0
-                    : double.tryParse(salaryAmount.text) ?? 0,
-                'data': Salarydata().date ?? '',
-              });
+            // Print values
+            print("Salary Data from Salary Pages");
+            print(salaryData.salaryType); // now it will always have a value
+            print(salaryData.Amount);
+            print(salaryData.date);
+            print(context);
+            print("Data sent back to home pages");
+
+            // Return data to previous screen
+            Navigator.pop(context, {
+              'type': salaryData.salaryType ?? '',
+              'amount': salaryData.Amount,
+              'date': salaryData.date ?? '',
             });
 
-            
-            //  addincome(salaryType.text,salaryAmount.text as int,salaryDate.text);
+            // Call API
+            addincome(
+              salaryData.salaryType ?? '',
+              (salaryData.Amount ?? 0).toInt(),
+              salaryData.date ?? '',
+            );
           },
           child: const Icon(Icons.save_alt_outlined),
         ),
