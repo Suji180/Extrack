@@ -135,64 +135,66 @@ Future<void>google_auth(String authCode) async{
     print("error occured $e");
   }
 }
-Future<void>savetoken(String token) async{
-  final storage = FlutterSecureStorage();
-  final expiryDate = DateTime.now().add(const Duration(days: 7));
-  await storage.write(key: 'session_token', value: token);
-  await storage.write(key: 'session_expiry', value: expiryDate.toIso8601String());
-}
-Future<String?>gettoken() async{
-  final storage = FlutterSecureStorage();
-  final token = await storage.read(key: 'session_token');
-  final expiryDateString = await storage.read(key: 'session_expiry');
-
-  if (token == null || expiryDateString == null){
-    return null;
+  Future<void>savetoken(String token) async{
+    final storage = FlutterSecureStorage();
+    final expiryDate = DateTime.now().add(const Duration(days: 7));
+    await storage.write(key: 'session_token', value: token);
+    await storage.write(key: 'session_expiry', value: expiryDate.toIso8601String());
   }
+  Future<String?>gettoken() async{
+    final storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'session_token');
+    final expiryDateString = await storage.read(key: 'session_expiry');
 
-  final expiryDate = DateTime.tryParse(expiryDateString);
-
-  if(expiryDate == null || expiryDate.isBefore(DateTime.now())) {
-    print("Got token but it's expired on Device !");
-    return null;
-  }
-  return token;
-}
-
-
-Future<void>addincome(String salaryType, int salaryAmount, String salaryDate) async{
-  try{
-    String? token = await gettoken();
-    print(token);
-    if(token == null){
-      print("No token found. user mat no be logged in or token is expired");
-      return;
+    if (token == null || expiryDateString == null){
+      return null;
     }
+
+    final expiryDate = DateTime.tryParse(expiryDateString);
+
+    if(expiryDate == null || expiryDate.isBefore(DateTime.now())) {
+      print("Got token but it's expired on Device !");
+      return null;
+    }
+    return token;
+  }
+
+
+  Future<void>addincome(String salaryType, int salaryAmount, String salaryDate) async{
+    try{
+      String? token = await gettoken();
+      print(token);
+      if(token == null){
+        print("No token found. user mat no be logged in or token is expired");
+        return;
+      }
+      print(salaryType);
+      print(salaryAmount);
+      print(salaryDate);
+      final url = Uri.parse("http://10.0.2.2:8000/income");
+      final response = await http.post(
+      url,
+      headers: {
+        'Content-type': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+      body: jsonEncode({
+        'salaryType': salaryType,
+        'salaryAmount': salaryAmount,
+        'salaryDate': salaryDate,
+      })
+      );
+      if(response.statusCode == 200 || response.statusCode == 201){
+        print("Income added Successfully");
+
+      }
+      else{
+        print("income not added");
+      }
+      }
+      catch(e){
+        print("error occured $e");
+      }
     
+  }
 
-    final url = Uri.parse("http://10.0.2.2:8000/income");
-    final response = await http.post(
-    url,
-    headers: {
-      'Content-type': 'application/json',
-      'Authorization': 'Bearer $token'
-    },
-    body: jsonEncode({
-      'salaryType': salaryType,
-      'salaryAmount': salaryAmount,
-      'salaryDate': salaryDate,
-    })
-    );
-    if(response.statusCode == 200 || response.statusCode == 201){
-      print("Income added Successfully");
-
-    }
-    else{
-      print("income not added");
-    }
-    }
-    catch(e){
-      print("error occured $e");
-    }
-  
-}
