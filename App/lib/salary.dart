@@ -85,13 +85,22 @@ class _SalaryState extends State<Salary> {
                   : double.tryParse(salaryAmount.text) ?? 0;
               Salarydata().date = salaryDate.text;
               Navigator.pop(context);
-            });
-
-            addincome(
+              print("the output is $salaryAmount.text");
+               addincome(
               Salarydata().salaryType ?? '',
               (Salarydata().Amount ?? 0).toInt(),
               Salarydata().date ?? '',
             );
+            });
+            // print("the output is",Salarydata().Amount);
+            // print(Salarydata().date);
+
+            // addincome(
+            //   Salarydata().salaryType ?? '',
+            //   (Salarydata().Amount ?? 0).toInt(),
+            //   Salarydata().date ?? '',
+            // );
+            //  addincome(salaryType.text,salaryAmount.text as int,salaryDate.text);
           },
           child: const Icon(Icons.save_alt_outlined),
         ),
