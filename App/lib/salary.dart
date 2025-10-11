@@ -84,33 +84,17 @@ class _SalaryState extends State<Salary> {
                   ? 0
                   : double.tryParse(salaryAmount.text) ?? 0;
               Salarydata().date = salaryDate.text;
-<<<<<<< HEAD
-              Navigator.pop(context,{
+
+              Navigator.pop(context, {
                 'type': Salarydata().salaryType ?? '',
-                'amount': salaryAmount.text == '' ? 0 : double.tryParse(salaryAmount.text) ?? 0,
-                'data': Salarydata().date ?? ''
+                'amount': salaryAmount.text == ''
+                    ? 0
+                    : double.tryParse(salaryAmount.text) ?? 0,
+                'data': Salarydata().date ?? '',
               });
             });
 
-            addincome(
-=======
-              Navigator.pop(context);
-              print("the output is $salaryAmount.text");
-               addincome(
->>>>>>> 6d4057b0965f07924423752714703d42550a2d9e
-              Salarydata().salaryType ?? '',
-              (Salarydata().Amount ?? 0).toInt(),
-              Salarydata().date ?? '',
-            );
-            });
-            // print("the output is",Salarydata().Amount);
-            // print(Salarydata().date);
-
-            // addincome(
-            //   Salarydata().salaryType ?? '',
-            //   (Salarydata().Amount ?? 0).toInt(),
-            //   Salarydata().date ?? '',
-            // );
+            
             //  addincome(salaryType.text,salaryAmount.text as int,salaryDate.text);
           },
           child: const Icon(Icons.save_alt_outlined),
