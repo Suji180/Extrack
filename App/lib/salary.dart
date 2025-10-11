@@ -10,6 +10,7 @@ class Salary extends StatefulWidget {
   @override
   State<Salary> createState() => _SalaryState();
 }
+
 class _SalaryState extends State<Salary> {
   final TextEditingController salaryAmount = TextEditingController();
   final TextEditingController salaryDate = TextEditingController();
