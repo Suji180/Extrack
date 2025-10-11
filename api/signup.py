@@ -9,6 +9,7 @@ from google.auth.transport import requests
 from google_auth_oauthlib.flow import Flow
 from dotenv import load_dotenv
 import os
+
 load_dotenv()
 load = APIRouter()
 
@@ -100,7 +101,7 @@ async def exchange_code(auth_code: str, conn):
                            user_id, name, email_id, refresh_token
                         )
         
-        custom_jwt = create_jwt(user_id = user_id, email = email_id)
+        custom_jwt = create_jwt_for_guser(user_id = user_id, email = email_id)
         return {"session_token": custom_jwt}
 
     except Exception as e:
@@ -111,7 +112,7 @@ import datetime, jwt
 jwt_secret_key = os.getenv("JWT_SECRET_KEY")
 jwt_algorithm = os.getenv("JWT_ALGORITHM")
 
-def create_jwt(user_id: str, email: str) -> str:
+def create_jwt_for_guser(user_id: str, email: str) -> str:
     exp_time = datetime.datetime.utcnow() + datetime.timedelta(days=7)
     payload = {
         "exp": exp_time,

@@ -1,8 +1,9 @@
-from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter, UploadFile, File, Form
+from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter, UploadFile, File, Form, Header
 from pydantic import BaseModel
 import asyncpg
 import os
 from db import get_connection
+from dashboard import get_user_id
 
 load = APIRouter()
 
@@ -12,9 +13,15 @@ if not os.path.exists(directory):
 
 @load.post("/add")
 async def add_expense(category: str = Form(...), amount: int = Form(...), receipt: str = File(...),
-                    conn = Depends(get_connection), image: UploadFile = File(...)):
+                    conn = Depends(get_connection), image: UploadFile = File(...), auth = Header(None, alias = "Authorization")):
+    if not auth or not auth.startswith("Bearer "):
+        raise HTTPException(status_code= 401, detail= "The Auth jwt token must be start with the format 'Bearer token'")
+    
+    jwt_token = auth.split(" ")[1]
+    uid = get_user_id(jwt_token)
+
     try:
-        await conn.execute("INSERT INTO expenses (category, amount, receipt) VALUES ($1, $2, $3)", category, amount, receipt)
+        await conn.execute("INSERT INTO expenses (id, category, amount, receipt) VALUES ($1, $2, $3, $4)", uid, category, amount, receipt)
 
         file_location = os.path.join(directory, image.filename)
         with open(file_location, "wb") as buffer:

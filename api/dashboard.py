@@ -8,7 +8,6 @@ import os
 import datetime, time
 
 load_dotenv()
-
 load = APIRouter()
 
 @load.post("/income")
