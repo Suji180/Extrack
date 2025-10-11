@@ -66,9 +66,20 @@ Future<void> postexpenses(
   String receipt,
   String filepath,
 ) async {
+  String? token = await gettoken();
+  print(token);
+  if (token == null) {
+    print("No token found. user mat no be logged in or token is expired");
+    return;
+  }
   try {
     var url = Uri.parse("http://10.0.2.2:8000/add");
     var request = http.MultipartRequest('POST', url);
+    request.headers.addAll({
+      'Authorization': 'Bearer $token', 
+      'Content-Type':
+          'multipart/form-data', 
+    });
     request.fields['category'] = category;
     request.fields['amount'] = amount.toString();
     request.fields['receipt'] = receipt;

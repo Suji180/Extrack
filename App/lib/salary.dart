@@ -15,18 +15,18 @@ class _SalaryState extends State<Salary> {
   final TextEditingController salaryAmount = TextEditingController();
   final TextEditingController salaryDate = TextEditingController();
 
-  // Single instance of Salarydata
+  
   final Salarydata salaryData = Salarydata();
 
-  // Default dropdown value
+  
   final List<String> salaryTypes = ['Monthly', 'Yearly', 'Weekly', 'Daily'];
 
   @override
   void initState() {
     super.initState();
-    // Set default value if null
+    
     if (salaryData.salaryType == null) {
-      salaryData.salaryType = salaryTypes[0]; // default to "Monthly"
+      salaryData.salaryType = salaryTypes[0]; 
     }
   }
 
@@ -55,7 +55,7 @@ class _SalaryState extends State<Salary> {
                     label: const Text('Salary Type'),
                     hintText: 'Select Type',
                   ),
-                  value: salaryData.salaryType, // current selected type
+                  value: salaryData.salaryType, 
                   items: salaryTypes
                       .map(
                         (saltype) => DropdownMenuItem(
@@ -66,7 +66,7 @@ class _SalaryState extends State<Salary> {
                       .toList(),
                   onChanged: (value) {
                     setState(() {
-                      salaryData.salaryType = value; // update the selected type
+                      salaryData.salaryType = value; 
                     });
                   },
                 ),
@@ -93,19 +93,19 @@ class _SalaryState extends State<Salary> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            // Update Salarydata instance
+          
             salaryData.Amount = double.tryParse(salaryAmount.text) ?? 0;
             salaryData.date = salaryDate.text;
 
-            // Print values
+           
             print("Salary Data from Salary Pages");
-            print(salaryData.salaryType); // now it will always have a value
+            print(salaryData.salaryType); 
             print(salaryData.Amount);
             print(salaryData.date);
             print(context);
             print("Data sent back to home pages");
 
-            // Return data to previous screen
+            
             Navigator.pop(context, {
               'type': salaryData.salaryType ?? '',
               'amount': salaryData.Amount,
