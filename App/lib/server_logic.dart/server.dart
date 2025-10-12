@@ -52,6 +52,9 @@ Future<void> getuser(String email, String password) async {
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       print("sign in Successfully");
+      var jsonresponse = json.decode(response.body);
+      print(jsonresponse["session_token"]);
+      await savetoken(jsonresponse["session_token"]);
     } else {
       print("not signin ");
     }
