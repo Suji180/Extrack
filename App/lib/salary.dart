@@ -84,7 +84,7 @@ class _SalaryState extends State<Salary> {
                   ? 0
                   : double.tryParse(salaryAmount.text) ?? 0;
               Salarydata().date = salaryDate.text;
-<<<<<<< HEAD
+
               Navigator.pop(context,{
                 'type': Salarydata().salaryType ?? '',
                 'amount': salaryAmount.text == '' ? 0 : double.tryParse(salaryAmount.text) ?? 0,
@@ -92,17 +92,7 @@ class _SalaryState extends State<Salary> {
               });
             });
 
-            addincome(
-=======
-              Navigator.pop(context);
-              print("the output is $salaryAmount.text");
-               addincome(
->>>>>>> 6d4057b0965f07924423752714703d42550a2d9e
-              Salarydata().salaryType ?? '',
-              (Salarydata().Amount ?? 0).toInt(),
-              Salarydata().date ?? '',
-            );
-            });
+            
             // print("the output is",Salarydata().Amount);
             // print(Salarydata().date);
 
