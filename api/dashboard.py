@@ -22,7 +22,11 @@ async def income(add: Income, conn = Depends(get_connection), auth: str = Header
     print(f"Amount: {add.salaryAmount}")
     print(f"Date: {add.salaryDate}")
     try:
-        await conn.execute("INSERT INTO dashboard (id, type, amount, date) VALUES ($1, $2, $3, $4)",
+        await conn.execute("""
+                           INSERT INTO dashboard (id, type, amount, date) VALUES ($1, $2, $3, $4)
+                           ON CONFLICT (id) DO UPDATE
+                           SET type = EXCLUDED.type, amount = EXCLUDED.amount, date = EXCLUDED.date;
+                           """,
                            uid, add.salaryType, add.salaryAmount, add.salaryDate)
         return {"Message": "The Income added successfully"}
 
