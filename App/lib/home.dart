@@ -22,7 +22,7 @@ class _HomepageState extends ConsumerState<Homepage> {
     final TextEditingController newexpenseAmountController = TextEditingController();
     final TextEditingController newreceiptNameController = TextEditingController();
     bool isuiupdated = true;
-    int? totalBalance;
+    double? totalBalance;
     File ? selectedimage;
     void addExpense() {
     showDialog(
@@ -326,16 +326,18 @@ class _HomepageState extends ConsumerState<Homepage> {
                             
                             GestureDetector(
                                  onTap: () async {
-                   
+                        try{
                         final result = await Navigator.push(context ,MaterialPageRoute(builder: (context) => const Salary()));
                           if(result != null)
                           {
                             setState(() {
                               
-                             totalBalance = result['amount'] as int?;
+                             totalBalance = result['amount'] as double?;
                              isuiupdated = false;
                               
                             });
+                          } } catch(e) {
+                            print('Error: $e');
                           }
              
                   },
@@ -493,7 +495,89 @@ class _HomepageState extends ConsumerState<Homepage> {
                                 )
                                 , 
                                 SizedBox(height: MediaQuery.of(context).size.height*0.01,),
-                              
+                                Container (
+                
+                  margin: const EdgeInsets.only(left : 15 , right: 15, bottom: 20 , top: 10),
+                  height: MediaQuery.of(context).size.height * 0.15,
+                  width: MediaQuery.of(context).size.width *0.9,
+                  
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.transparent,
+                    border: Border.all(
+                      color: Colors.black12,
+                      width: 1.0,
+                    )
+                  ),
+                  child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 10,top: 3),
+                                            child: Text("Spending process",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontFamily: 'poppins',
+                                              
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black54
+                                            ),
+                                            textAlign: TextAlign.start,),
+                                          ),
+                                          
+                                         AnimatedContainer(
+                                          duration: const Duration(seconds: 1),
+                                          margin: const EdgeInsets.only(left: 20, right: 10),
+                                          height: MediaQuery.of(context).size.height * 0.02,
+                                          width: MediaQuery.of(context).size.width * 0.8,
+                                          
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(20),
+                                            color: const images.Color.fromARGB(0, 7, 243, 58),
+                                            border: Border.all(
+                                              color: Colors.black87,
+                                              width: 1.0
+                                            )
+                                            
+                                          ),
+                                         ),
+                                          images.Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.only(left: 10,top: 5),
+                                                child: Text("left budget",
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontFamily: 'poppins',
+                                                  
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.black54
+                                                ),
+                                                textAlign: TextAlign.start,),
+                                              ),
+
+                                               Padding(
+                                            padding: const EdgeInsets.only(top: 10,right: 5),
+                                            child: Text("Spent budget",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontFamily: 'poppins',
+                                              
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black54
+                                            ),
+                                            textAlign: TextAlign.start,),
+                                          ),
+                                            ],
+                                          ),
+                                           
+                                 
+                                        ],
+                                      ), 
+                
+                  ),
                               ],
                             ),
         
