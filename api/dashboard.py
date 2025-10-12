@@ -11,7 +11,7 @@ load_dotenv()
 load = APIRouter()
 
 @load.post("/income")
-async def income(add: Income, conn = Depends(get_connection), auth: str = Header(None, alias="Authorization")):
+async def income(add: Income, conn = Depends(get_connection), auth: str = Header(None, alias= "Authorization")):
     print(auth)
     if not auth or not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail= "Auth header must be provided in Bearer token format")
@@ -40,6 +40,7 @@ def get_user_id(jwt_token):
     )
 
     uid = data.get("sub")
+    print(uid)
 
     return uid
 

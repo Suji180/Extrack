@@ -31,14 +31,19 @@ async def signup(user: Signup, conn = Depends(get_connection)):
 async def login(user: Login, conn = Depends(get_connection)):
     passwd = user.password
     try:
-        content = await conn.fetchrow("SELECT email_id, passwd FROM users WHERE email_id = $1", user.email,)
+        content = await conn.fetchrow("SELECT id, email_id, passwd FROM users WHERE email_id = $1", user.email,)
         if not content:
             raise HTTPException(status_code = 404, detail = "Email is wrong")
             
-        if not bcrypt.checkpw(passwd.encode('utf-8'), content[1].encode('utf-8')):
+        if not bcrypt.checkpw(passwd.encode('utf-8'), content[2].encode('utf-8')):
             raise HTTPException(status_code = 404, detail = "Password is wrong")
+        
+        uid, email_id = content[0], content[1]
 
-        return {"Message": "Login Successful"}
+        jwt_token = create_jwt_for_nuser(uid, email_id)
+        print(jwt_token)
+
+        return {"session_token": jwt_token}
     
     except asyncpg.PostgresError as e:
         raise HTTPException(status_code = 500, detail = f"{e}")
@@ -49,6 +54,8 @@ CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 REDIRECT_URI = "https://oauth2.googleapis.com/token" 
 TOKEN_URI = "https://oauth2.googleapis.com/token"
 AUTH_URI = "https://accounts.google.com/o/oauth2/auth"
+
+print(CLIENT_SECRET)
 
 async def exchange_code(auth_code: str, conn):
     if not auth_code:
@@ -89,6 +96,7 @@ async def exchange_code(auth_code: str, conn):
         )
 
         user_id = user_data.get("sub")
+        user_id = int(user_id)
         name = user_data.get("name")
         email_id = user_data.get("email")
 
@@ -113,6 +121,7 @@ jwt_secret_key = os.getenv("JWT_SECRET_KEY")
 jwt_algorithm = os.getenv("JWT_ALGORITHM")
 
 def create_jwt_for_guser(user_id: str, email: str) -> str:
+    user_id = str(user_id)
     exp_time = datetime.datetime.utcnow() + datetime.timedelta(days=7)
     payload = {
         "exp": exp_time,
@@ -140,3 +149,22 @@ async def google_login(token: glogin, conn = Depends(get_connection)):
 
     except Exception as e:
         raise HTTPException(status_code = 500, detail= f"{e}")
+    
+def create_jwt_for_nuser(user_id: str, email_id: str) -> str:
+    user_id = str(user_id)
+    exp_time = datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    payload = {
+        "sub": user_id,
+        "iat": datetime.datetime.utcnow(),
+        "exp": exp_time,
+        "email": email_id,
+        "session_type": "custom"
+    }
+
+    encoded_jwt = jwt.encode(
+        payload,
+        jwt_secret_key,
+        algorithm = jwt_algorithm
+    )
+
+    return encoded_jwt
