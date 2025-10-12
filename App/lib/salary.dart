@@ -15,18 +15,16 @@ class _SalaryState extends State<Salary> {
   final TextEditingController salaryAmount = TextEditingController();
   final TextEditingController salaryDate = TextEditingController();
 
-  
   final Salarydata salaryData = Salarydata();
 
-  
   final List<String> salaryTypes = ['Monthly', 'Yearly', 'Weekly', 'Daily'];
 
   @override
   void initState() {
     super.initState();
-    
+
     if (salaryData.salaryType == null) {
-      salaryData.salaryType = salaryTypes[0]; 
+      salaryData.salaryType = salaryTypes[0];
     }
   }
 
@@ -55,7 +53,7 @@ class _SalaryState extends State<Salary> {
                     label: const Text('Salary Type'),
                     hintText: 'Select Type',
                   ),
-                  value: salaryData.salaryType, 
+                  value: salaryData.salaryType,
                   items: salaryTypes
                       .map(
                         (saltype) => DropdownMenuItem(
@@ -66,7 +64,7 @@ class _SalaryState extends State<Salary> {
                       .toList(),
                   onChanged: (value) {
                     setState(() {
-                      salaryData.salaryType = value; 
+                      salaryData.salaryType = value;
                     });
                   },
                 ),
@@ -93,32 +91,46 @@ class _SalaryState extends State<Salary> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-
             setState(() {
               Salarydata().Amount = salaryAmount.text == ''
                   ? 0
                   : double.tryParse(salaryAmount.text) ?? 0;
               Salarydata().date = salaryDate.text;
 
-            addincome(
-              
-              salaryData.salaryType ?? '',
-              (salaryData.Amount ?? 0).toInt(),
-              salaryData.date ?? '',
-            );
+              print("the data is ${salaryData.salaryType}");
+              salaryData.Amount = double.tryParse(salaryAmount.text) ?? 0;
 
-              Navigator.pop(context,{
+              salaryData.date = salaryDate.text;
+
+              print("Salary Data from Salary Pages");
+
+              print(salaryData.salaryType);
+
+              print(salaryData.Amount);
+
+              print(salaryData.date);
+
+              print(context);
+
+              print("Data sent back to home pages");
+
+              addincome(
+                salaryData.salaryType ?? '',
+
+                (salaryData.Amount ?? 0).toInt(),
+
+                salaryData.date ?? '',
+              );
+
+              Navigator.pop(context, {
                 'type': Salarydata().salaryType ?? '',
-                'amount': salaryAmount.text == '' ? 0 : double.tryParse(salaryAmount.text) ?? 0,
-                'data': Salarydata().date ?? ''
+                'amount': salaryAmount.text == ''
+                    ? 0
+                    : double.tryParse(salaryAmount.text) ?? 0,
+                'data': Salarydata().date ?? '',
               });
-        
+            });
 
-           
-            }
-            );
-
-     
             // print("the output is",Salarydata().Amount);
             // print(Salarydata().date);
 
@@ -128,8 +140,6 @@ class _SalaryState extends State<Salary> {
             //   Salarydata().date ?? '',
             // );
             //  addincome(salaryType.text,salaryAmount.text as int,salaryDate.text);
-
-
           },
           child: const Icon(Icons.save_alt_outlined),
         ),
