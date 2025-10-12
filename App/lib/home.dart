@@ -502,7 +502,7 @@ class _HomepageState extends ConsumerState<Homepage> {
                   width: MediaQuery.of(context).size.width *0.9,
                   
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
                     color: Colors.transparent,
                     border: Border.all(
                       color: Colors.black12,
@@ -528,17 +528,14 @@ class _HomepageState extends ConsumerState<Homepage> {
                                           
                                          AnimatedContainer(
                                           duration: const Duration(seconds: 1),
-                                          margin: const EdgeInsets.only(left: 20, right: 10),
+                                          margin: const EdgeInsets.only(left: 20, right: 20),
                                           height: MediaQuery.of(context).size.height * 0.02,
                                           width: MediaQuery.of(context).size.width * 0.8,
                                           
                                           decoration: BoxDecoration(
                                             borderRadius: BorderRadius.circular(20),
-                                            color: const images.Color.fromARGB(0, 7, 243, 58),
-                                            border: Border.all(
-                                              color: Colors.black87,
-                                              width: 1.0
-                                            )
+                                            color: const Color.fromRGBO(0, 128, 0, 1),
+                                           
                                             
                                           ),
                                          ),
@@ -566,8 +563,8 @@ class _HomepageState extends ConsumerState<Homepage> {
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontFamily: 'poppins',
-                                          fontWeight: FontWeight.w800,
-                                          color: const images.Color.fromARGB(255, 0, 0, 0),
+                                          fontWeight: FontWeight.w900,
+                                         color: Colors.black54
                                         ),
                                         ),
                                       ),
@@ -589,13 +586,13 @@ class _HomepageState extends ConsumerState<Homepage> {
                                                                                                textAlign: TextAlign.start,),
                                                                                              ),
                                         Padding(
-                                            padding: const EdgeInsets.only(right: 5),
-                                            child: Text("0",
+                                            padding: const EdgeInsets.only(right: 5,bottom: 5),
+                                            child: Text("₹0",
                                             style: TextStyle(
                                               fontSize: 12,
                                               fontFamily: 'poppins',
                                               
-                                              fontWeight: FontWeight.w800,
+                                              fontWeight: FontWeight.w900,
                                               color: Colors.black54
                                             ),
                                             textAlign: TextAlign.start,),
