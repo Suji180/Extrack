@@ -545,31 +545,63 @@ class _HomepageState extends ConsumerState<Homepage> {
                                           images.Row(
                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Padding(
-                                                padding: const EdgeInsets.only(left: 10,top: 5),
-                                                child: Text("left budget",
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontFamily: 'poppins',
-                                                  
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.black54
-                                                ),
-                                                textAlign: TextAlign.start,),
+                                              images.Column(
+                                                children: [
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(left: 10,top: 5),
+                                                    child: Text("left budget",
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontFamily: 'poppins',
+                                                      
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.black54
+                                                    ),
+                                                    textAlign: TextAlign.start,),
+                                                  ),
+                                                  Padding(
+                                        padding: const EdgeInsets.only(left: 5),
+                                        child: Text('₹${totalBalance.toString()}',
+                                        textAlign: TextAlign.left,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontFamily: 'poppins',
+                                          fontWeight: FontWeight.w800,
+                                          color: const images.Color.fromARGB(255, 0, 0, 0),
+                                        ),
+                                        ),
+                                      ),
+                                                ],
                                               ),
 
-                                               Padding(
-                                            padding: const EdgeInsets.only(top: 10,right: 5),
-                                            child: Text("Spent budget",
+                                               images.Column(
+                                                 children: [
+                                                   Padding(
+                                                                                               padding: const EdgeInsets.only(top: 10,right: 5),
+                                                                                               child: Text("Spent budget",
+                                                                                               style: TextStyle(
+                                                                                                 fontSize: 12,
+                                                                                                 fontFamily: 'poppins',
+                                                                                                 
+                                                                                                 fontWeight: FontWeight.w600,
+                                                                                                 color: Colors.black54
+                                                                                               ),
+                                                                                               textAlign: TextAlign.start,),
+                                                                                             ),
+                                        Padding(
+                                            padding: const EdgeInsets.only(right: 5),
+                                            child: Text("0",
                                             style: TextStyle(
                                               fontSize: 12,
                                               fontFamily: 'poppins',
                                               
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.w800,
                                               color: Colors.black54
                                             ),
                                             textAlign: TextAlign.start,),
                                           ),
+                                                 ],
+                                               ),
                                             ],
                                           ),
                                            
