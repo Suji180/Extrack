@@ -21,8 +21,8 @@ class Homepage extends ConsumerStatefulWidget {
 Future<void> saveExpensewithexpiry(Map<String, dynamic> expense) async {
   const storage = FlutterSecureStorage();
   String? jwt = await storage.read(key: 'session_token');
-  print("JWT Token inside saveexpensewithexpiry: $jwt"); 
-  if(jwt == null){
+  print("JWT Token inside saveexpensewithexpiry: $jwt");
+  if (jwt == null) {
     print("No jwt found, so cannot save expensise with session token");
     return null;
   }
@@ -40,7 +40,7 @@ Future<Map<String, dynamic>?> getExpensewithexpiry() async {
   const storage = FlutterSecureStorage();
   String? jwt = await storage.read(key: 'session_token');
   print("JWT Token inside getExpensewithexpiry: $jwt");
-  if(jwt == null){
+  if (jwt == null) {
     print("No jwt found, so cannot get expensise with session token");
     return null;
   }
@@ -50,13 +50,24 @@ Future<Map<String, dynamic>?> getExpensewithexpiry() async {
   }
   final stored = jsonDecode(data);
   final expiry = DateTime.parse(stored['expiry']);
+
   if (DateTime.now().isAfter(expiry)) {
     await storage.delete(key: 'expense_with_expiry_$jwt');
     return null;
   }
   print("retrieved expense with expiry:");
   print(stored['expense']);
-  return Map<String, dynamic>.from(stored['expense']);
+  final expenseMap = Map<String, dynamic>.from(stored['expense']);
+  // ref.read(expenseDataProvider.notifier)
+  //     .addExpense(
+  //       ExpenseItem(
+  //         name: stored['expense']['name'],
+  //         amount: stored['expense']['amount'],
+  //         date: DateTime.parse(stored['expense']['date']),
+  //         receiptname: stored['expense']['receiptname'],
+  //       ),
+  //     );
+  return expenseMap;
 }
 
 void localcached() async {
@@ -82,8 +93,8 @@ class _HomepageState extends ConsumerState<Homepage> {
   File? selectedimage;
   @override
   void initState() {
-    super.initState();  
-    localcached(); 
+    super.initState();
+    localcached();
   }
 
   void addExpense() {
