@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:extrack/server_logic.dart/server.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert';
 
 
 class Homepage extends ConsumerStatefulWidget {
@@ -15,6 +17,20 @@ class Homepage extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<Homepage> createState() => _HomepageState();
+}
+Future<void> saveExpensewithexpiry(Map<String, dynamic> expense)async{
+  const storage = FlutterSecureStorage();
+  final now  = DateTime.now();
+  final expiry = now.add(const Duration(days: 1));
+  final datetostore = {
+    'expense': expense,
+    'expiry': expiry.toIso8601String(),
+  };
+  await storage.write(
+    key: 'expense_with_expiry',
+    value: json.encode(datetostore),
+  );
+  print(datetostore);
 }
 
 class _HomepageState extends ConsumerState<Homepage> {
@@ -164,8 +180,10 @@ class _HomepageState extends ConsumerState<Homepage> {
       
     }
   }
-  void add() 
+  void add() async
   {
+    print("it works");
+
      ref.read(expenseDataProvider.notifier).addExpense(
       ExpenseItem(
         name: newexpenseNameController.text,
@@ -175,6 +193,16 @@ class _HomepageState extends ConsumerState<Homepage> {
       )
       
      );
+     final expense = {
+      'name': newexpenseNameController.text,
+      'amount':newexpenseAmountController.text,
+      'date': DateTime.now().toIso8601String(),
+      'receiptname': newreceiptNameController.text,
+      'imagePath': _pickedImage!.path,
+     };
+    //  print("expense with expiry");
+    //  print(expense);
+    saveExpensewithexpiry(expense);
      postexpenses(newexpenseNameController.text, int.tryParse(newexpenseAmountController.text) ?? 0, newreceiptNameController.text, _pickedImage!.path);
 
      clear();
@@ -184,6 +212,7 @@ class _HomepageState extends ConsumerState<Homepage> {
   }
   void cancel()
   {
+    print("cancelled");
     Navigator.of(context).pop();
     clear();
   }
