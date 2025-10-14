@@ -148,6 +148,7 @@ Future<String?> gettoken() async {
   return token;
 }
 
+
 Future<void> addincome(
   String salaryType,
   int salaryAmount,
@@ -186,4 +187,15 @@ Future<void> addincome(
   } catch (e) {
     print("error occured $e");
   }
+}
+Future<void> logout()async{
+  final storage = FlutterSecureStorage();
+  String? jwt = await storage.read(key: 'session_token');
+  if(jwt == null){
+    print("No jwt found, so cannot logout");
+    return;
+  }
+  await storage.delete(key: 'session_token');
+  await storage.delete(key: 'expense_with_expiry_$jwt');
+  print("User logged out successfully");
 }

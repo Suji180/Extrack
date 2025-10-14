@@ -20,11 +20,17 @@ class Homepage extends ConsumerStatefulWidget {
 
 Future<void> saveExpensewithexpiry(Map<String, dynamic> expense) async {
   const storage = FlutterSecureStorage();
+  String? jwt = await storage.read(key: 'session_token');
+  print("JWT Token inside saveexpensewithexpiry: $jwt"); 
+  if(jwt == null){
+    print("No jwt found, so cannot save expensise with session token");
+    return null;
+  }
   final now = DateTime.now();
   final expiry = now.add(const Duration(days: 1));
   final datetostore = {'expense': expense, 'expiry': expiry.toIso8601String()};
   await storage.write(
-    key: 'expense_with_expiry',
+    key: 'expense_with_expiry_$jwt',
     value: json.encode(datetostore),
   );
   print(datetostore);
@@ -32,14 +38,20 @@ Future<void> saveExpensewithexpiry(Map<String, dynamic> expense) async {
 
 Future<Map<String, dynamic>?> getExpensewithexpiry() async {
   const storage = FlutterSecureStorage();
-  final data = await storage.read(key: 'expense_with_expiry');
+  String? jwt = await storage.read(key: 'session_token');
+  print("JWT Token inside getExpensewithexpiry: $jwt");
+  if(jwt == null){
+    print("No jwt found, so cannot get expensise with session token");
+    return null;
+  }
+  final data = await storage.read(key: 'expense_with_expiry_$jwt');
   if (data == null) {
     return null;
   }
   final stored = jsonDecode(data);
   final expiry = DateTime.parse(stored['expiry']);
   if (DateTime.now().isAfter(expiry)) {
-    await storage.delete(key: 'expense_with_expiry');
+    await storage.delete(key: 'expense_with_expiry_$jwt');
     return null;
   }
   print("retrieved expense with expiry:");
