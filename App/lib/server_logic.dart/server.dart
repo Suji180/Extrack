@@ -54,6 +54,7 @@ Future<void> getuser(String email, String password) async {
       print("sign in Successfully");
       var jsonresponse = json.decode(response.body);
       print(jsonresponse["session_token"]);
+      print(jsonresponse["username"]);
       await savetoken(jsonresponse["session_token"]);
     } else {
       print("not signin ");
@@ -111,7 +112,9 @@ Future<void> google_auth(String authCode) async {
       print("Google signin Successfull");
       var jsonresponse = json.decode(response.body);
       print(jsonresponse["session_token"]);
+      print(jsonresponse["username"]);
       await savetoken(jsonresponse["session_token"]);
+
     } else {
       print("not signup ");
     }

@@ -18,25 +18,89 @@ class Homepage extends ConsumerStatefulWidget {
   ConsumerState<Homepage> createState() => _HomepageState();
 }
 
-Future<void> saveExpensewithexpiry(Map<String, dynamic> expense) async {
-  const storage = FlutterSecureStorage();
+// Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expense) async {
+//   final storage = FlutterSecureStorage();
+//   String? jwt = await storage.read(key: 'session_token');
+//   print("JWT Token inside saveexpensewithexpiry: $jwt");
+//   if (jwt == null) {
+//     print("No jwt found, so cannot save expensise with session token");
+//     return null;
+//   }
+//   final now = DateTime.now();
+//   final expiry = now.add(const Duration(days: 1));
+
+//   final existing_data = await storage.read(key: 'expense_with_expiry_$jwt');
+//   List<Map<String, dynamic>> expenselist = [];
+//   if (existing_data != null) {
+//     final stored = jsonDecode(existing_data);
+//     final expiryDate = DateTime.parse(stored['expiry']);
+//     if (DateTime.now().isBefore(expiryDate)) {
+//       if (stored['expense'] is List) {
+//         expenselist = List<Map<String, dynamic>>.from(stored['expense']);
+//       } else {
+//         print("Old expense data was a Map, resetting to empty list");
+//       }
+//     } else {
+//       print("existind data is expired");
+//     }
+//     expenselist.add(expense);
+//   }
+//   final datetostore = {
+//     'expense': expenselist,
+//     'expiry': expiry.toIso8601String(),
+//   };
+//   await storage.write(
+//     key: 'expense_with_expiry_$jwt',
+//     value: json.encode(datetostore),
+//   );
+//   print(datetostore);
+// }
+Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
+  final storage = FlutterSecureStorage();
   String? jwt = await storage.read(key: 'session_token');
-  print("JWT Token inside saveexpensewithexpiry: $jwt");
+  print("JWT Token inside saveExpensewithexpiry: $jwt");
   if (jwt == null) {
-    print("No jwt found, so cannot save expensise with session token");
-    return null;
+    print("No jwt found, so cannot save expenses with session token");
+    return;
   }
+
   final now = DateTime.now();
   final expiry = now.add(const Duration(days: 1));
-  final datetostore = {'expense': expense, 'expiry': expiry.toIso8601String()};
+
+  final existingData = await storage.read(key: 'expense_with_expiry_$jwt');
+  List<Map<String, dynamic>> expenseList = [];
+  
+  if (existingData != null) {
+    final stored = jsonDecode(existingData);
+    final expiryDate = DateTime.parse(stored['expiry']);
+    if (now.isBefore(expiryDate)) {
+      if (stored['expense'] is List) {
+        expenseList = List<Map<String, dynamic>>.from(stored['expense']);
+      } else {
+        print("Old expense data was a Map, resetting to empty list");
+      }
+    } else {
+      print("Existing data is expired");
+    }
+    // Instead of adding a single expense, add all expenses from the passed list
+    expenseList.addAll(expenses);
+  } else {
+    // No existing data, just add all passed expenses
+    expenseList.addAll(expenses);
+  }
+
+  final dataToStore = {
+    'expense': expenseList,
+    'expiry': expiry.toIso8601String(),
+  };
   await storage.write(
     key: 'expense_with_expiry_$jwt',
-    value: json.encode(datetostore),
+    value: json.encode(dataToStore),
   );
-  print(datetostore);
+  print(dataToStore);
 }
 
-Future<Map<String, dynamic>?> getExpensewithexpiry() async {
+Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
   const storage = FlutterSecureStorage();
   String? jwt = await storage.read(key: 'session_token');
   print("JWT Token inside getExpensewithexpiry: $jwt");
@@ -57,7 +121,8 @@ Future<Map<String, dynamic>?> getExpensewithexpiry() async {
   }
   print("retrieved expense with expiry:");
   print(stored['expense']);
-  final expenseMap = Map<String, dynamic>.from(stored['expense']);
+  final List<Map<String, dynamic>> expense_list =
+      List<Map<String, dynamic>>.from(stored['expense']);
   // ref.read(expenseDataProvider.notifier)
   //     .addExpense(
   //       ExpenseItem(
@@ -67,7 +132,8 @@ Future<Map<String, dynamic>?> getExpensewithexpiry() async {
   //         receiptname: stored['expense']['receiptname'],
   //       ),
   //     );
-  return expenseMap;
+  // return expenseMap;
+  return expense_list;
 }
 
 void localcached() async {
@@ -246,9 +312,11 @@ class _HomepageState extends ConsumerState<Homepage> {
       'receiptname': newreceiptNameController.text,
       'imagePath': _pickedImage!.path,
     };
-    //  print("expense with expiry");
-    //  print(expense);
-    saveExpensewithexpiry(expense);
+
+    final expenseList = [expense];
+
+   
+    saveExpensewithexpiry(expenseList);
     postexpenses(
       newexpenseNameController.text,
       int.tryParse(newexpenseAmountController.text) ?? 0,
