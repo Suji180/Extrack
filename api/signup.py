@@ -45,10 +45,8 @@ async def login(user: Login, conn = Depends(get_connection)):
 
         jwt_token = create_jwt_for_nuser(uid, email_id)
         print(jwt_token)
-        username = get_user_name(jwt_token)
-        print(username)
 
-        return {"session_token": jwt_token, "username": username}
+        return {"session_token": jwt_token, "username": user.email}
     
     except asyncpg.PostgresError as e:
         raise HTTPException(status_code = 500, detail = f"{e}")

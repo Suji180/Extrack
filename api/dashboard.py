@@ -44,8 +44,6 @@ def get_user_id(jwt_token):
     )
 
     uid = data.get("sub")
-    username = data.get("name")
-    print(username)
     print(uid)
 
     return uid
