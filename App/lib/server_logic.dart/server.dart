@@ -55,7 +55,7 @@ Future<void> getuser(String email, String password) async {
       var jsonresponse = json.decode(response.body);
       print(jsonresponse["session_token"]);
       print(jsonresponse["username"]);
-      await savetoken(jsonresponse["session_token"]);
+      await savetoken(jsonresponse["session_token"], jsonresponse["username"]);
     } else {
       print("not signin ");
     }
@@ -113,7 +113,7 @@ Future<void> google_auth(String authCode) async {
       var jsonresponse = json.decode(response.body);
       print(jsonresponse["session_token"]);
       print(jsonresponse["username"]);
-      await savetoken(jsonresponse["session_token"]);
+      await savetoken(jsonresponse["session_token"], jsonresponse["username"]);
 
     } else {
       print("not signup ");
@@ -123,10 +123,11 @@ Future<void> google_auth(String authCode) async {
   }
 }
 
-Future<void> savetoken(String token) async {
+Future<void> savetoken(String token, String username) async {
   final storage = FlutterSecureStorage();
   final expiryDate = DateTime.now().add(const Duration(days: 7));
   await storage.write(key: 'session_token', value: token);
+  await storage.write(key: 'username', value: username);
   await storage.write(
     key: 'session_expiry',
     value: expiryDate.toIso8601String(),

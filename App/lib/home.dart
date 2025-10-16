@@ -18,56 +18,21 @@ class Homepage extends ConsumerStatefulWidget {
   ConsumerState<Homepage> createState() => _HomepageState();
 }
 
-// Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expense) async {
-//   final storage = FlutterSecureStorage();
-//   String? jwt = await storage.read(key: 'session_token');
-//   print("JWT Token inside saveexpensewithexpiry: $jwt");
-//   if (jwt == null) {
-//     print("No jwt found, so cannot save expensise with session token");
-//     return null;
-//   }
-//   final now = DateTime.now();
-//   final expiry = now.add(const Duration(days: 1));
 
-//   final existing_data = await storage.read(key: 'expense_with_expiry_$jwt');
-//   List<Map<String, dynamic>> expenselist = [];
-//   if (existing_data != null) {
-//     final stored = jsonDecode(existing_data);
-//     final expiryDate = DateTime.parse(stored['expiry']);
-//     if (DateTime.now().isBefore(expiryDate)) {
-//       if (stored['expense'] is List) {
-//         expenselist = List<Map<String, dynamic>>.from(stored['expense']);
-//       } else {
-//         print("Old expense data was a Map, resetting to empty list");
-//       }
-//     } else {
-//       print("existind data is expired");
-//     }
-//     expenselist.add(expense);
-//   }
-//   final datetostore = {
-//     'expense': expenselist,
-//     'expiry': expiry.toIso8601String(),
-//   };
-//   await storage.write(
-//     key: 'expense_with_expiry_$jwt',
-//     value: json.encode(datetostore),
-//   );
-//   print(datetostore);
-// }
+
 Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
   final storage = FlutterSecureStorage();
-  String? jwt = await storage.read(key: 'session_token');
-  print("JWT Token inside saveExpensewithexpiry: $jwt");
-  if (jwt == null) {
-    print("No jwt found, so cannot save expenses with session token");
+  String? user = await storage.read(key: 'username');
+  print("user saveExpensewithexpiry: $user");
+  if (user == null) {
+    print("No user found, so cannot save expenses with session token");
     return;
   }
 
   final now = DateTime.now();
   final expiry = now.add(const Duration(days: 1));
 
-  final existingData = await storage.read(key: 'expense_with_expiry_$jwt');
+  final existingData = await storage.read(key: 'expense_with_expiry_$user');
   List<Map<String, dynamic>> expenseList = [];
   
   if (existingData != null) {
@@ -82,10 +47,9 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
     } else {
       print("Existing data is expired");
     }
-    // Instead of adding a single expense, add all expenses from the passed list
+    
     expenseList.addAll(expenses);
   } else {
-    // No existing data, just add all passed expenses
     expenseList.addAll(expenses);
   }
 
@@ -94,7 +58,7 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
     'expiry': expiry.toIso8601String(),
   };
   await storage.write(
-    key: 'expense_with_expiry_$jwt',
+    key: 'expense_with_expiry_$user',
     value: json.encode(dataToStore),
   );
   print(dataToStore);
@@ -102,13 +66,13 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
 
 Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
   const storage = FlutterSecureStorage();
-  String? jwt = await storage.read(key: 'session_token');
-  print("JWT Token inside getExpensewithexpiry: $jwt");
-  if (jwt == null) {
-    print("No jwt found, so cannot get expensise with session token");
+  String? user = await storage.read(key: 'username');
+  print("user getExpensewithexpiry: $user");
+  if (user == null) {
+    print("No user found, so cannot get expensise with session token");
     return null;
   }
-  final data = await storage.read(key: 'expense_with_expiry_$jwt');
+  final data = await storage.read(key: 'expense_with_expiry_$user');
   if (data == null) {
     return null;
   }
@@ -116,7 +80,7 @@ Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
   final expiry = DateTime.parse(stored['expiry']);
 
   if (DateTime.now().isAfter(expiry)) {
-    await storage.delete(key: 'expense_with_expiry_$jwt');
+    await storage.delete(key: 'expense_with_expiry_$user');
     return null;
   }
   print("retrieved expense with expiry:");
