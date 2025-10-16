@@ -18,8 +18,6 @@ class Homepage extends ConsumerStatefulWidget {
   ConsumerState<Homepage> createState() => _HomepageState();
 }
 
-
-
 Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
   final storage = FlutterSecureStorage();
   String? user = await storage.read(key: 'username');
@@ -34,7 +32,7 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
 
   final existingData = await storage.read(key: 'expense_with_expiry_$user');
   List<Map<String, dynamic>> expenseList = [];
-  
+
   if (existingData != null) {
     final stored = jsonDecode(existingData);
     final expiryDate = DateTime.parse(stored['expiry']);
@@ -47,7 +45,7 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
     } else {
       print("Existing data is expired");
     }
-    
+
     expenseList.addAll(expenses);
   } else {
     expenseList.addAll(expenses);
@@ -100,15 +98,43 @@ Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
   return expense_list;
 }
 
-void localcached() async {
+Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
+  ref.read(expenseDataProvider.notifier).state = [];
+  final storage = FlutterSecureStorage();
+  String? user = await storage.read(key: 'username');
+  print("user addui: $user");
   final expense = await getExpensewithexpiry();
   if (expense != null) {
     print("Expense retrieved from local cache:");
     print(expense);
+    for (var exp in expense) {
+      ref
+          .read(expenseDataProvider.notifier)
+          .addExpense(
+            ExpenseItem(
+              name: exp['name'],
+              amount: exp['amount'],
+              date: DateTime.parse(exp['date']),
+              receiptname: exp['receiptname'],
+            ),
+          );
+    }
+    return expense;
   } else {
     print("No valid expense found in local cache or it has expired.");
+    return null;
   }
 }
+
+// void localcached() async {
+//   final expense = await getExpensewithexpiry();
+//   if (expense != null) {
+//     print("Expense retrieved from local cache:");
+//     print(expense);
+//   } else {
+//     print("No valid expense found in local cache or it has expired.");
+//   }
+// }
 
 // localcached() // Removed to fix duplicate definition error
 class _HomepageState extends ConsumerState<Homepage> {
@@ -124,7 +150,13 @@ class _HomepageState extends ConsumerState<Homepage> {
   @override
   void initState() {
     super.initState();
-    localcached();
+    print("inside init state of homepage");
+    // localcached();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      addui(ref);
+      print("UI updated from local cache if available");
+    });
   }
 
   void addExpense() {
@@ -257,18 +289,19 @@ class _HomepageState extends ConsumerState<Homepage> {
   }
 
   void add() async {
+    
     print("it works");
 
-    ref
-        .read(expenseDataProvider.notifier)
-        .addExpense(
-          ExpenseItem(
-            name: newexpenseNameController.text,
-            amount: newexpenseAmountController.text,
-            date: DateTime.now(),
-            receiptname: newreceiptNameController.text,
-          ),
-        );
+    // ref
+    //     .read(expenseDataProvider.notifier)
+    //     .addExpense(
+    //       ExpenseItem(
+    //         name: newexpenseNameController.text,
+    //         amount: newexpenseAmountController.text,
+    //         date: DateTime.now(),
+    //         receiptname: newreceiptNameController.text,
+    //       ),
+    //     );
     final expense = {
       'name': newexpenseNameController.text,
       'amount': newexpenseAmountController.text,
@@ -279,8 +312,8 @@ class _HomepageState extends ConsumerState<Homepage> {
 
     final expenseList = [expense];
 
-   
     saveExpensewithexpiry(expenseList);
+    addui(ref);
     postexpenses(
       newexpenseNameController.text,
       int.tryParse(newexpenseAmountController.text) ?? 0,
