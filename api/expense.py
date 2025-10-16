@@ -12,7 +12,7 @@ if not os.path.exists(directory):
     os.makedirs(directory)
 
 @load.post("/add")
-async def add_expense(category: str = Form(...), amount: int = Form(...), receipt: str = File(...),
+async def add_expense(category: str = Form(...), amount: int = Form(...), receipt: str = Form(...),
                     conn = Depends(get_connection), image: UploadFile = File(...), auth = Header(None, alias = "Authorization")):
     if not auth or not auth.startswith("Bearer "):
         raise HTTPException(status_code= 401, detail= "The Auth jwt token must be start with the format 'Bearer token'")

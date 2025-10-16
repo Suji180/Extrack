@@ -9,6 +9,7 @@ from google.auth.transport import requests
 from google_auth_oauthlib.flow import Flow
 from dotenv import load_dotenv
 import os
+import uuid
 
 load_dotenv()
 load = APIRouter()
@@ -19,8 +20,10 @@ async def signup(user: Signup, conn = Depends(get_connection)):
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(passwd.encode('utf-8'), salt)
     passwd = hashed.decode('utf-8')
+    uid = uuid.uuid4()
+    uid = uid.int
     try:
-        await conn.execute("INSERT INTO users (email_id, passwd) VALUES ($1, $2)", user.email, passwd)
+        await conn.execute("INSERT INTO users (id, email_id, passwd) VALUES ($1, $2, $3)", uid, user.email, passwd)
         return {"Message" : "The Signup is Successful"}
 
     except asyncpg.PostgresError as error:
@@ -42,8 +45,10 @@ async def login(user: Login, conn = Depends(get_connection)):
 
         jwt_token = create_jwt_for_nuser(uid, email_id)
         print(jwt_token)
+        username = get_user_name(jwt_token)
+        print(username)
 
-        return {"session_token": jwt_token}
+        return {"session_token": jwt_token, "username": username}
     
     except asyncpg.PostgresError as e:
         raise HTTPException(status_code = 500, detail = f"{e}")
@@ -109,7 +114,7 @@ async def exchange_code(auth_code: str, conn):
                            user_id, name, email_id, refresh_token
                         )
         
-        custom_jwt = create_jwt_for_guser(user_id = user_id, email = email_id)
+        custom_jwt = create_jwt_for_guser(username = name, user_id = user_id, email = email_id)
         return {"session_token": custom_jwt}
 
     except Exception as e:
@@ -120,11 +125,12 @@ import datetime, jwt
 jwt_secret_key = os.getenv("JWT_SECRET_KEY")
 jwt_algorithm = os.getenv("JWT_ALGORITHM")
 
-def create_jwt_for_guser(user_id: str, email: str) -> str:
+def create_jwt_for_guser(username: str, user_id: str, email: str) -> str:
     user_id = str(user_id)
     exp_time = datetime.datetime.utcnow() + datetime.timedelta(days=7)
     payload = {
         "exp": exp_time,
+        "name": username,
         "iat": datetime.datetime.utcnow(),
         "sub": user_id,
         "email": email,
@@ -144,15 +150,18 @@ async def google_login(token: glogin, conn = Depends(get_connection)):
     auth_code = token.AuthCode
     try:
         data = await exchange_code(auth_code, conn)
-        print(data["session_token"])
-        return {"session_token": data["session_token"]}
+        jwt_token = data["session_token"]
+        print(jwt_token)
+        name = get_user_name(jwt_token)
+        print(name)
+        return {"session_token": jwt_token, "username": name}
 
     except Exception as e:
         raise HTTPException(status_code = 500, detail= f"{e}")
     
 def create_jwt_for_nuser(user_id: str, email_id: str) -> str:
     user_id = str(user_id)
-    exp_time = datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    exp_time = datetime.datetime.utcnow() + datetime.timedelta(days=1)
     payload = {
         "sub": user_id,
         "iat": datetime.datetime.utcnow(),
@@ -168,3 +177,19 @@ def create_jwt_for_nuser(user_id: str, email_id: str) -> str:
     )
 
     return encoded_jwt
+
+def get_user_name(jwt_token):
+    data = jwt.decode(
+        jwt_token,
+        jwt_secret_key,
+        algorithms = [jwt_algorithm]
+    )
+
+    n_username = data.get("email")
+    if n_username == "saravanesh962006@gmail.com" or "itsmenivas007@gmail.com":
+        pass
+    else:
+        return n_username
+    g_username = data.get("name")
+    if g_username:
+        return g_username
