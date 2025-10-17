@@ -89,16 +89,6 @@ Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
   print(stored['expense']);
   final List<Map<String, dynamic>> expense_list =
       List<Map<String, dynamic>>.from(stored['expense']);
-  // ref.read(expenseDataProvider.notifier)
-  //     .addExpense(
-  //       ExpenseItem(
-  //         name: stored['expense']['name'],
-  //         amount: stored['expense']['amount'],
-  //         date: DateTime.parse(stored['expense']['date']),
-  //         receiptname: stored['expense']['receiptname'],
-  //       ),
-  //     );
-  // return expenseMap;
   return expense_list;
 }
 
@@ -130,16 +120,18 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
   }
 }
 
-void localcached() async {
+Future<String?> localcached() async {
   final income = await getincome();
   if (income != null) {
     print("Income from local cache: $income");
+    return income;
   } else {
     print("No income  found in local cache or it has expired.");
+    return null;
   }
 }
 
-// localcached() // Removed to fix duplicate definition error
+
 class _HomepageState extends ConsumerState<Homepage> {
   final TextEditingController newexpenseNameController =
       TextEditingController();
@@ -147,14 +139,26 @@ class _HomepageState extends ConsumerState<Homepage> {
       TextEditingController();
   final TextEditingController newreceiptNameController =
       TextEditingController();
-  bool isuiupdated = true;
+  bool isuiupdated = false;
   double? totalBalance;
   File? selectedimage;
   @override
   void initState() {
     super.initState();
     print("inside init state of homepage");
-    localcached();
+    localcached().then((setincome) {
+      if (setincome != null) {
+        setState(() {
+          totalBalance = double.tryParse(setincome);
+          isuiupdated = false;
+        });
+      } else {
+        setState(() {
+          isuiupdated = true;
+        });
+      }
+    });
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       addui(ref);
@@ -435,6 +439,9 @@ class _HomepageState extends ConsumerState<Homepage> {
               ),
             ),
             SliverToBoxAdapter(
+              
+
+              
               child: isuiupdated
                   ? Container(
                       margin: const EdgeInsets.only(
