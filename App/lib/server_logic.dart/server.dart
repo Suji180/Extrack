@@ -197,14 +197,16 @@ Future<void> addincome(
 
 Future<void> saveincome(String income) async{
   final storage = FlutterSecureStorage();
+  final String? user = await storage.read(key: 'username');
   final expiryincome = DateTime.now().add(const Duration(days: 30));
-  await storage.write(key: 'income', value: income);
+  await storage.write(key: 'income$user', value: income);
   await storage.write(key:'income_expiry', value: expiryincome.toIso8601String());
   print("Income saved successfully  in secure storage");
 }
 Future<String?> getincome() async{
   final storage = FlutterSecureStorage();
-  final income = await storage.read(key: 'income');
+  final String? user = await storage.read(key: 'username');
+  final income = await storage.read(key: 'income$user');
   final expiryincomeString = await storage.read(key: 'income_expiry');
   if(income == null || expiryincomeString == null){
     return null;
