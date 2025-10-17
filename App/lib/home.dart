@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:extrack/salary.dart';
 import 'package:flutter/material.dart' as images;
 import 'package:flutter/src/widgets/container.dart';
@@ -61,6 +63,8 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
   );
   print(dataToStore);
 }
+
+
 
 Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
   const storage = FlutterSecureStorage();
@@ -126,15 +130,14 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
   }
 }
 
-// void localcached() async {
-//   final expense = await getExpensewithexpiry();
-//   if (expense != null) {
-//     print("Expense retrieved from local cache:");
-//     print(expense);
-//   } else {
-//     print("No valid expense found in local cache or it has expired.");
-//   }
-// }
+void localcached() async {
+  final income = await getincome();
+  if (income != null) {
+    print("Income from local cache: $income");
+  } else {
+    print("No income  found in local cache or it has expired.");
+  }
+}
 
 // localcached() // Removed to fix duplicate definition error
 class _HomepageState extends ConsumerState<Homepage> {
@@ -151,7 +154,7 @@ class _HomepageState extends ConsumerState<Homepage> {
   void initState() {
     super.initState();
     print("inside init state of homepage");
-    // localcached();
+    localcached();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       addui(ref);
@@ -342,6 +345,7 @@ class _HomepageState extends ConsumerState<Homepage> {
   @override
   Widget build(BuildContext context) {
     final product = ref.watch(expenseDataProvider);
+    double spendbudget = 0;
 
     return Consumer(
       builder: (BuildContext context, WidgetRef ref, Widget? child) => Scaffold(
@@ -788,7 +792,7 @@ class _HomepageState extends ConsumerState<Homepage> {
                                           bottom: 5,
                                         ),
                                         child: Text(
-                                          "₹0",
+                                          "₹${spendbudget.toStringAsFixed(2)}",
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontFamily: 'poppins',

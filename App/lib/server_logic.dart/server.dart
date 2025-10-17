@@ -153,6 +153,7 @@ Future<String?> gettoken() async {
 }
 
 
+
 Future<void> addincome(
   String salaryType,
   int salaryAmount,
@@ -185,12 +186,31 @@ Future<void> addincome(
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       print("Income added Successfully");
+      saveincome(salaryAmount.toString());
     } else {
       print("income not added");
     }
   } catch (e) {
     print("error occured $e");
   }
+}
+
+Future<void> saveincome(String income) async{
+  final storage = FlutterSecureStorage();
+  final expiryincome = DateTime.now().add(const Duration(days: 30));
+  await storage.write(key: 'income', value: income);
+  await storage.write(key:'income_expiry', value: expiryincome.toIso8601String());
+  print("Income saved successfully  in secure storage");
+}
+Future<String?> getincome() async{
+  final storage = FlutterSecureStorage();
+  final income = await storage.read(key: 'income');
+  final expiryincomeString = await storage.read(key: 'income_expiry');
+  if(income == null || expiryincomeString == null){
+    return null;
+  }
+  // final expiryincome = DateTime.tryParse(expiryincomeString);
+  return income;
 }
 Future<void> logout()async{
   final storage = FlutterSecureStorage();
