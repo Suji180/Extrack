@@ -120,11 +120,34 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
   }
 }
 
-Future<String?> localcached() async {
+Future<Map<String, dynamic>?> localcached() async {
+  
   final income = await getincome();
   if (income != null) {
     print("Income from local cache: $income");
-    return income;
+    final callincome = await getExpensewithexpiry();
+    double parsedAmount = 0.0;
+    if (callincome != null) {
+      for (var inc in callincome) {
+        final account = inc['amount'];
+        double value = 0.0;
+        if (account is String) {
+          value = double.tryParse(account) ?? 0.0;
+        } else if (account is num) {
+          value = account.toDouble();
+        } else {
+          print('cached expense has unsupported type');
+        }
+        parsedAmount += value;
+        print('cached expense parsed amount: $parsedAmount');
+        print('cached expense amount: $account');
+      }
+    }
+      return {
+      'income': income,
+      'budget': parsedAmount.toString(),
+    };
+    
   } else {
     print("No income  found in local cache or it has expired.");
     return null;
@@ -140,17 +163,26 @@ class _HomepageState extends ConsumerState<Homepage> {
   final TextEditingController newreceiptNameController =
       TextEditingController();
   bool isuiupdated = false;
-  double? totalBalance;
+  double spendbudget = 0;
+  double? totalBalance = 0;
   File? selectedimage;
   @override
   void initState() {
     super.initState();
     print("inside init state of homepage");
     localcached().then((setincome) {
-      if (setincome != null) {
+      if (setincome != null && setincome['income'] != null) {
+        totalBalance = double.tryParse(setincome['income']) ;
         setState(() {
-          totalBalance = double.tryParse(setincome);
           isuiupdated = false;
+          if(setincome['budget']!= null){
+            spendbudget = double.tryParse(setincome['budget']) ?? 0.0;
+            totalBalance = (totalBalance ?? 0) - spendbudget;
+            setState(() {
+              spendbudget = spendbudget;
+              totalBalance = totalBalance;
+            });
+          }
         });
       } else {
         setState(() {
@@ -349,7 +381,7 @@ class _HomepageState extends ConsumerState<Homepage> {
   @override
   Widget build(BuildContext context) {
     final product = ref.watch(expenseDataProvider);
-    double spendbudget = 0;
+    
 
     return Consumer(
       builder: (BuildContext context, WidgetRef ref, Widget? child) => Scaffold(
@@ -493,8 +525,6 @@ class _HomepageState extends ConsumerState<Homepage> {
                                       );
                                       if (result != null) {
                                         setState(() {
-                                          totalBalance =
-                                              result['amount'] as double?;
                                           isuiupdated = false;
                                         });
                                       }
