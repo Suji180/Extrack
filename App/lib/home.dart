@@ -154,7 +154,6 @@ Future<Map<String, dynamic>?> localcached() async {
   }
 }
 
-
 class _HomepageState extends ConsumerState<Homepage> {
   final TextEditingController newexpenseNameController =
       TextEditingController();
@@ -166,32 +165,36 @@ class _HomepageState extends ConsumerState<Homepage> {
   double spendbudget = 0;
   double? totalBalance = 0;
   File? selectedimage;
+  Future<void> loadLocalData() async {
+  print("Loading local data...");
+  final setincome = await localcached();
+
+  if (setincome != null && setincome['income'] != null) {
+    double? total = double.tryParse(setincome['income']);
+    double spend = 0.0;
+
+    if (setincome['budget'] != null) {
+      spend = double.tryParse(setincome['budget']) ?? 0.0;
+      total = (total ?? 0) - spend;
+    }
+
+    setState(() {
+      totalBalance = total ?? 0.0;
+      spendbudget = spend;
+      isuiupdated = false;
+    });
+  } else {
+    setState(() {
+      isuiupdated = true;
+    });
+  }
+}
+
   @override
   void initState() {
     super.initState();
     print("inside init state of homepage");
-    localcached().then((setincome) {
-      if (setincome != null && setincome['income'] != null) {
-        totalBalance = double.tryParse(setincome['income']) ;
-        setState(() {
-          isuiupdated = false;
-          if(setincome['budget']!= null){
-            spendbudget = double.tryParse(setincome['budget']) ?? 0.0;
-            totalBalance = (totalBalance ?? 0) - spendbudget;
-            setState(() {
-              spendbudget = spendbudget;
-              totalBalance = totalBalance;
-            });
-          }
-        });
-      } else {
-        setState(() {
-          isuiupdated = true;
-        });
-      }
-    });
-
-
+    loadLocalData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       addui(ref);
       print("UI updated from local cache if available");
@@ -348,6 +351,8 @@ class _HomepageState extends ConsumerState<Homepage> {
       'receiptname': newreceiptNameController.text,
       'imagePath': _pickedImage!.path,
     };
+    
+    
 
     final expenseList = [expense];
 
@@ -359,6 +364,7 @@ class _HomepageState extends ConsumerState<Homepage> {
       newreceiptNameController.text,
       _pickedImage!.path,
     );
+   await loadLocalData();
 
     clear();
     // close the dialog
