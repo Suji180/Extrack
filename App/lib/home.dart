@@ -161,9 +161,23 @@ class _HomepageState extends ConsumerState<Homepage> {
   double? totalBalance = 0;
   bool delayPassed = false;
   File? selectedimage;
+ Future<void> loaduiupdated() async{
+  final data = await getincome();
+  setState(() {
+    if(data != null){
+      isuiupdated = false;
+      totalBalance = double.tryParse(data) ?? 0.0;
+      spendbudget = 0.0;
+    } else {
+      isuiupdated = true;
+    }
+  });
+ }
+
   Future<void> loadLocalData() async {
     print("Loading local data...");
     final setincome = await localcached();
+    print("Local cached data: $setincome");
 
     if (setincome != null && setincome['income'] != null) {
       double? total = double.tryParse(setincome['income']);
@@ -535,14 +549,21 @@ class _HomepageState extends ConsumerState<Homepage> {
                                           builder: (context) => const Salary(),
                                         ),
                                       );
+                                      print("Returned from Salary screen");
                                       if (result != null) {
+                                        print("Salary data returned: $result");
+                                        // await loaduiupdated();
                                         setState(() {
                                           isuiupdated = false;
-                                          // loadLocalData();
-                                          print("it will reload now");
-
+                                          totalBalance =
+                                              (totalBalance ?? 0) +
+                                                  (result['amount'] ?? 0);
                                         });
                                       }
+                                      // if (true) {
+                                      //   print("Refreshing income data");
+                                      //   initState();
+                                      // }
                                     } catch (e) {
                                       print('Error: $e');
                                     }
