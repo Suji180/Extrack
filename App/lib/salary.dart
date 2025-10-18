@@ -1,6 +1,7 @@
 import 'Salarycalc/salarydata.dart';
 import 'package:flutter/material.dart';
 import 'package:extrack/server_logic.dart/server.dart';
+import 'package:extrack/home.dart';
 // import 'dart:convert';
 // import 'package:http/http.dart' as http;
 
@@ -121,6 +122,8 @@ class _SalaryState extends State<Salary> {
 
                 salaryData.date ?? '',
               );
+              localcached();
+              
 
               Navigator.pop(context, {
                 'type': Salarydata().salaryType ?? '',
