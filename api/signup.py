@@ -8,6 +8,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 from google_auth_oauthlib.flow import Flow
 from dotenv import load_dotenv
+from  starlette.concurrency import run_in_threadpool
 import os
 import uuid
 
@@ -58,9 +59,10 @@ REDIRECT_URI = "https://oauth2.googleapis.com/token"
 TOKEN_URI = "https://oauth2.googleapis.com/token"
 AUTH_URI = "https://accounts.google.com/o/oauth2/auth"
 
-print(CLIENT_SECRET)
+# print(CLIENT_SECRET)
 
-async def exchange_code(auth_code: str, conn):
+def exchange_code(auth_code: str):
+    print("Auth_code after function call:", auth_code)
     if not auth_code:
         return {"Error": "Missing Auth code"}, 400
     
@@ -82,7 +84,8 @@ async def exchange_code(auth_code: str, conn):
         )
         flow.fetch_token(code=auth_code)
         tokens = flow.credentials
-        print(tokens)
+
+        print("All Tokens:", tokens)
 
         refresh_token = tokens.refresh_token
         print(refresh_token)
@@ -98,22 +101,12 @@ async def exchange_code(auth_code: str, conn):
             CLIENT_ID
         )
 
-        user_id = user_data.get("sub")
-        user_id = int(user_id)
-        name = user_data.get("name")
-        email_id = user_data.get("email")
-
-        await conn.execute("""
-                           INSERT INTO gauth (id, name, email_id, refresh_token) 
-                           VALUES ($1, $2, $3, $4) 
-                           ON CONFLICT (id) DO UPDATE 
-                           SET refresh_token = EXCLUDED.refresh_token;
-                           """,
-                           user_id, name, email_id, refresh_token
-                        )
-        
-        custom_jwt = create_jwt_for_guser(username = name, user_id = user_id, email = email_id)
-        return {"session_token": custom_jwt}
+        return {
+                "user_id": user_data.get("sub"),
+                "name": user_data.get("name"),
+                "email_id": user_data.get("email"),
+                "refresh_token": refresh_token
+            }
 
     except Exception as e:
         print(f"Token Exchange failed : {e}")
@@ -146,15 +139,32 @@ def create_jwt_for_guser(username: str, user_id: str, email: str) -> str:
 @load.post("/glogin")
 async def google_login(token: glogin, conn = Depends(get_connection)):
     auth_code = token.AuthCode
+    print("Auth_code:", auth_code)
     try:
-        data = await exchange_code(auth_code, conn)
-        jwt_token = data["session_token"]
-        print(jwt_token)
-        name = get_user_name(jwt_token)
-        print(name)
-        return {"session_token": jwt_token, "username": name}
+        data = await run_in_threadpool(exchange_code, auth_code)
 
-    except Exception as e:
+        user_id = data['user_id']
+        user_id = int(user_id)
+        name = data['name']
+        email_id = data['email_id']
+        refresh_token = data['refresh_token']
+
+        await conn.execute("""
+                           INSERT INTO gauth (id, name, email_id, refresh_token) 
+                           VALUES ($1, $2, $3, $4) 
+                           ON CONFLICT (id) DO UPDATE 
+                           SET refresh_token = EXCLUDED.refresh_token;
+                           """,
+                           user_id, name, email_id, refresh_token
+                        )
+        
+        custom_jwt = create_jwt_for_guser(username = name, user_id = user_id, email = email_id)
+
+        name = get_user_name(custom_jwt)
+        print(name)
+        return {"session_token": custom_jwt, "username": name}
+
+    except asyncpg.PostgresError as e:
         raise HTTPException(status_code = 500, detail= f"{e}")
     
 def create_jwt_for_nuser(user_id: str, email_id: str) -> str:
@@ -176,6 +186,9 @@ def create_jwt_for_nuser(user_id: str, email_id: str) -> str:
 
     return encoded_jwt
 
+# print(jwt_algorithm)
+# print(jwt_secret_key)
+
 def get_user_name(jwt_token):
     data = jwt.decode(
         jwt_token,
@@ -183,11 +196,11 @@ def get_user_name(jwt_token):
         algorithms = [jwt_algorithm]
     )
 
-    n_username = data.get("email")
-    if n_username == "saravanesh962006@gmail.com" or "itsmenivas007@gmail.com":
-        pass
-    else:
-        return n_username
+    # n_username = data.get("email")
+    # if n_username == "saravanesh962006@gmail.com" or "itsmenivas007@gmail.com":
+    #     pass
+    # else:
+    #     return n_username
+    print("Decoded_jwt:", data)
     g_username = data.get("name")
-    if g_username:
-        return g_username
+    return g_username
