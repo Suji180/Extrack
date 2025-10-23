@@ -5,15 +5,20 @@ from basemodel import Signup, Login, glogin
 from db import get_connection
 import bcrypt
 from google.oauth2 import id_token
-from google.auth.transport import requests
+from google.auth.transport import requests as g_requests
 from google_auth_oauthlib.flow import Flow
 from dotenv import load_dotenv
 from  starlette.concurrency import run_in_threadpool
 import os
 import uuid
+import random
+import requests
 
 load_dotenv()
 load = APIRouter()
+
+WEB_HOOK = os.getenv("N8N_WEBHOOK_URL")
+print(WEB_HOOK)
 
 @load.post("/signup")
 async def signup(user: Signup, conn = Depends(get_connection)):
@@ -24,12 +29,52 @@ async def signup(user: Signup, conn = Depends(get_connection)):
     uid = uuid.uuid4()
     uid = uid.int
     try:
-        await conn.execute("INSERT INTO users (id, email_id, passwd) VALUES ($1, $2, $3)", uid, user.email, passwd)
-        return {"Message" : "The Signup is Successful"}
+        otp_sent = await send_otp(user.email, WEB_HOOK, conn)
+        if otp_sent:
+            hashed_otp = await conn.fetchrow("SELECT hashed_otp FROM user_otps ORDER BY created_at DESC;")
+            otp = otp_sent['otp_sent']
+            hashed_otp = str(hashed_otp[0])
+
+            otp = str(otp)
+            if bcrypt.checkpw(otp.encode('utf-8'), hashed_otp.encode('utf-8')):
+                await conn.execute("INSERT INTO users (id, email_id, passwd) VALUES ($1, $2, $3)", uid, user.email, passwd)
+                return {"Message" : "The Signup is Successful"}
+            else:
+                return {"message": "Signup failed"}
 
     except asyncpg.PostgresError as error:
         raise HTTPException(status_code = 500, detail = f"{error}")
     
+
+async def send_otp(email, web_hook_url, conn):
+    otp = random.randint(100000, 999999)
+    otp = str(otp)
+    salt = bcrypt.gensalt()
+    hash_otp = bcrypt.hashpw(otp.encode('utf-8'), salt)
+    hashed_otp  = hash_otp.decode('utf-8')
+    otp = int(otp)
+
+    await conn.execute("INSERT INTO user_otps (hashed_otp) VALUES ($1)", hashed_otp)
+
+    payload = {
+        "email":email,
+        "otp": otp
+    }
+
+    try:
+        response = requests.post(web_hook_url, json = payload, timeout = 10)
+
+        if response.status_code == 200:
+            print(f"Successfully sent {otp} for email_address : {email} to N8N")
+            return {"otp_sent": otp}
+        
+        else:
+            print(f"Error when sending otp for email_address: {email}")
+            print(response.text)
+            return {"Message": "N8N Failed"}
+        
+    except Exception as e:
+        print(f"Error when making the post request : {e}")
 
 @load.post("/login")
 async def login(user: Login, conn = Depends(get_connection)):
@@ -97,7 +142,7 @@ def exchange_code(auth_code: str):
         
         user_data = id_token.verify_oauth2_token(
             id_token_jwt,
-            requests.Request(),
+            g_requests.Request(),
             CLIENT_ID
         )
 
