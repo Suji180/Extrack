@@ -1,5 +1,7 @@
-import 'dart:ffi';
+library my_globals;
 
+import 'dart:ffi';
+import 'dart:math' as math;
 import 'package:extrack/salary.dart';
 import 'package:flutter/material.dart' as images;
 import 'package:flutter/src/widgets/container.dart';
@@ -64,8 +66,6 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
   print(dataToStore);
 }
 
-
-
 Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
   const storage = FlutterSecureStorage();
   String? user = await storage.read(key: 'username');
@@ -121,7 +121,6 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
 }
 
 Future<Map<String, dynamic>?> localcached() async {
-  
   final income = await getincome();
   if (income != null) {
     print("Income from local cache: $income");
@@ -143,11 +142,7 @@ Future<Map<String, dynamic>?> localcached() async {
         print('cached expense amount: $account');
       }
     }
-      return {
-      'income': income,
-      'budget': parsedAmount.toString(),
-    };
-    
+    return {'income': income, 'budget': parsedAmount.toString()};
   } else {
     print("No income  found in local cache or it has expired.");
     return null;
@@ -161,41 +156,61 @@ class _HomepageState extends ConsumerState<Homepage> {
       TextEditingController();
   final TextEditingController newreceiptNameController =
       TextEditingController();
-  bool isuiupdated = false;
+  bool? isuiupdated;
   double spendbudget = 0;
   double? totalBalance = 0;
+  bool delayPassed = false;
   File? selectedimage;
-  Future<void> loadLocalData() async {
-  print("Loading local data...");
-  final setincome = await localcached();
-
-  if (setincome != null && setincome['income'] != null) {
-    double? total = double.tryParse(setincome['income']);
-    double spend = 0.0;
-
-    if (setincome['budget'] != null) {
-      spend = double.tryParse(setincome['budget']) ?? 0.0;
-      total = (total ?? 0) - spend;
-    }
-
-    setState(() {
-      totalBalance = total ?? 0.0;
-      spendbudget = spend;
+ Future<void> loaduiupdated() async{
+  final data = await getincome();
+  setState(() {
+    if(data != null){
       isuiupdated = false;
-    });
-  } else {
-    setState(() {
+      totalBalance = double.tryParse(data) ?? 0.0;
+      spendbudget = 0.0;
+    } else {
       isuiupdated = true;
-    });
+    }
+  });
+ }
+
+  Future<void> loadLocalData() async {
+    print("Loading local data...");
+    final setincome = await localcached();
+    print("Local cached data: $setincome");
+
+    if (setincome != null && setincome['income'] != null) {
+      double? total = double.tryParse(setincome['income']);
+      double spend = 0.0;
+
+      if (setincome['budget'] != null) {
+        spend = double.tryParse(setincome['budget']) ?? 0.0;
+        total = (total ?? 0) - spend;
+      }
+
+      setState(() {
+        totalBalance = total ?? 0.0;
+        spendbudget = spend;
+        isuiupdated = false;
+      });
+    } else {
+      setState(() {
+        isuiupdated = true;
+      });
+    }
   }
-}
 
   @override
   void initState() {
     super.initState();
     print("inside init state of homepage");
     loadLocalData();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    Future.delayed(Duration(milliseconds: 300), () {
+      setState(() {
+        delayPassed = true;
+      });
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       addui(ref);
       print("UI updated from local cache if available");
     });
@@ -331,7 +346,6 @@ class _HomepageState extends ConsumerState<Homepage> {
   }
 
   void add() async {
-    
     print("it works");
 
     // ref
@@ -351,8 +365,6 @@ class _HomepageState extends ConsumerState<Homepage> {
       'receiptname': newreceiptNameController.text,
       'imagePath': _pickedImage!.path,
     };
-    
-    
 
     final expenseList = [expense];
 
@@ -364,7 +376,7 @@ class _HomepageState extends ConsumerState<Homepage> {
       newreceiptNameController.text,
       _pickedImage!.path,
     );
-   await loadLocalData();
+    await loadLocalData();
 
     clear();
     // close the dialog
@@ -387,7 +399,6 @@ class _HomepageState extends ConsumerState<Homepage> {
   @override
   Widget build(BuildContext context) {
     final product = ref.watch(expenseDataProvider);
-    
 
     return Consumer(
       builder: (BuildContext context, WidgetRef ref, Widget? child) => Scaffold(
@@ -476,11 +487,19 @@ class _HomepageState extends ConsumerState<Homepage> {
                 ),
               ),
             ),
-            SliverToBoxAdapter(
-              
 
-              
-              child: isuiupdated
+            SliverToBoxAdapter(
+              child: !(delayPassed)
+                  ? Center(
+                      child: Transform.rotate(
+                        angle: math.pi / 2,
+                        child: CircularProgressIndicator(
+                          color: Colors.green,
+                          strokeWidth: 5,
+                        ),
+                      ),
+                    ) // or your splash/loading widget
+                  : (isuiupdated ?? false)
                   ? Container(
                       margin: const EdgeInsets.only(
                         left: 15,
@@ -504,6 +523,7 @@ class _HomepageState extends ConsumerState<Homepage> {
                           fit: BoxFit.fitWidth,
                         ),
                       ),
+
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -529,11 +549,21 @@ class _HomepageState extends ConsumerState<Homepage> {
                                           builder: (context) => const Salary(),
                                         ),
                                       );
+                                      print("Returned from Salary screen");
                                       if (result != null) {
+                                        print("Salary data returned: $result");
+                                        // await loaduiupdated();
                                         setState(() {
                                           isuiupdated = false;
+                                          totalBalance =
+                                              (totalBalance ?? 0) +
+                                                  (result['amount'] ?? 0);
                                         });
                                       }
+                                      // if (true) {
+                                      //   print("Refreshing income data");
+                                      //   initState();
+                                      // }
                                     } catch (e) {
                                       print('Error: $e');
                                     }

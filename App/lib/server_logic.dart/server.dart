@@ -80,9 +80,8 @@ Future<void> postexpenses(
     var url = Uri.parse("http://10.0.2.2:8000/add");
     var request = http.MultipartRequest('POST', url);
     request.headers.addAll({
-      'Authorization': 'Bearer $token', 
-      'Content-Type':
-          'multipart/form-data', 
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'multipart/form-data',
     });
     request.fields['category'] = category;
     request.fields['amount'] = amount.toString();
@@ -114,7 +113,6 @@ Future<void> google_auth(String authCode) async {
       print(jsonresponse["session_token"]);
       print(jsonresponse["username"]);
       await savetoken(jsonresponse["session_token"], jsonresponse["username"]);
-
     } else {
       print("not signup ");
     }
@@ -151,8 +149,6 @@ Future<String?> gettoken() async {
   }
   return token;
 }
-
-
 
 Future<void> addincome(
   String salaryType,
@@ -195,30 +191,37 @@ Future<void> addincome(
   }
 }
 
-Future<void> saveincome(String income) async{
+
+
+Future<void> saveincome(String income) async {
   final storage = FlutterSecureStorage();
   final String? user = await storage.read(key: 'username');
   final expiryincome = DateTime.now().add(const Duration(days: 30));
   await storage.write(key: 'income$user', value: income);
-  await storage.write(key:'income_expiry', value: expiryincome.toIso8601String());
-  
+  await storage.write(
+    key: 'income_expiry',
+    value: expiryincome.toIso8601String(),
+  );
+
   print("Income saved successfully  in secure storage");
 }
-Future<String?> getincome() async{
+
+Future<String?> getincome() async {
   final storage = FlutterSecureStorage();
   final String? user = await storage.read(key: 'username');
   final income = await storage.read(key: 'income$user');
   final expiryincomeString = await storage.read(key: 'income_expiry');
-  if(income == null || expiryincomeString == null){
+  if (income == null || expiryincomeString == null) {
     return null;
   }
   // final expiryincome = DateTime.tryParse(expiryincomeString);
   return income;
 }
-Future<void> logout()async{
+
+Future<void> logout() async {
   final storage = FlutterSecureStorage();
   String? jwt = await storage.read(key: 'session_token');
-  if(jwt == null){
+  if (jwt == null) {
     print("No jwt found, so cannot logout");
     return;
   }
