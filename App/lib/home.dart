@@ -32,7 +32,7 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
   }
 
   final now = DateTime.now();
-  final expiry = now.add(const Duration(days: 1));
+  final expiry = now.add(const Duration(days: 7));
 
   final existingData = await storage.read(key: 'expense_with_expiry_$user');
   List<Map<String, dynamic>> expenseList = [];
@@ -91,20 +91,38 @@ Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
       List<Map<String, dynamic>>.from(stored['expense']);
   return expense_list;
 }
-
 Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
-  ref.read(expenseDataProvider.notifier).state = [];
   final storage = FlutterSecureStorage();
   String? user = await storage.read(key: 'username');
   print("user addui: $user");
+  if (user == null) return null;
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  String? lastdataload = await storage.read(key: 'last_data_load_$user');
+  if (lastdataload != null) {
+    final lastLoadDate = DateTime.tryParse(lastdataload);
+    if (lastLoadDate != null && lastLoadDate.isBefore(today)) {
+      print("Last data load was before today, clearing expense data provider");
+      ref.read(expenseDataProvider.notifier).state = [];
+      await storage.write(
+        key: 'last_data_load_$user',
+        value: today.toIso8601String(),
+      );
+
+      return [];
+    }
+  } else {
+    await storage.write(
+      key: 'last_data_load_$user',
+      value: today.toIso8601String(),
+    );
+  }
   final expense = await getExpensewithexpiry();
   if (expense != null) {
     print("Expense retrieved from local cache:");
     print(expense);
     for (var exp in expense) {
-      ref
-          .read(expenseDataProvider.notifier)
-          .addExpense(
+      ref.read(expenseDataProvider.notifier).addExpense(
             ExpenseItem(
               name: exp['name'],
               amount: exp['amount'],
@@ -119,6 +137,7 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
     return null;
   }
 }
+
 
 Future<Map<String, dynamic>?> localcached() async {
   final income = await getincome();
