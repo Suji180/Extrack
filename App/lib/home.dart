@@ -75,6 +75,7 @@ Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
     return null;
   }
   final data = await storage.read(key: 'expense_with_expiry_$user');
+  print("data retrieved from storage: $data");
   if (data == null) {
     return null;
   }
@@ -411,6 +412,7 @@ class _HomepageState extends ConsumerState<Homepage> {
       newreceiptNameController.text,
       _pickedImage!.path,
     );
+    postimageinn8n(_pickedImage!.path);
     await loadLocalData();
 
     clear();

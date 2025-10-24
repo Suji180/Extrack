@@ -97,7 +97,24 @@ Future<void> postexpenses(
     print("Error Adding expense: $e");
   }
 }
-
+Future<void> postimageinn8n(String filepath)async{
+  try{
+    print("Posting image to inn8n workflow");
+    var url = Uri.parse("https://saroo.app.n8n.cloud/webhook-test/b999aaa2-0b88-4d03-9fc8-0766de85835f");
+    var request = http.MultipartRequest('POST', url);
+    request.files.add(await http.MultipartFile.fromPath('image', filepath,filename: filepath.split('/').last));
+    var response = await request.send();
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print(response);
+      print("Image posted successfully to inn8n");
+    } else {
+      print("Image posting to inn8n failed");
+  }
+}
+  catch(e){
+    print("Error posting image to inn8n: $e");
+  }
+}
 Future<void> google_auth(String authCode) async {
   try {
     final url = Uri.parse("http://10.0.2.2:8000/glogin");
