@@ -121,6 +121,7 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
   if (expense != null) {
     print("Expense retrieved from local cache:");
     print(expense);
+    ref.read(expenseDataProvider.notifier).state = [];
     for (var exp in expense) {
       ref.read(expenseDataProvider.notifier).addExpense(
             ExpenseItem(
@@ -161,6 +162,7 @@ Future<Map<String, dynamic>?> localcached() async {
         print('cached expense amount: $account');
       }
     }
+
     return {'income': income, 'budget': parsedAmount.toString()};
   } else {
     print("No income  found in local cache or it has expired.");
@@ -195,6 +197,8 @@ class _HomepageState extends ConsumerState<Homepage> {
 
   Future<void> loadLocalData() async {
     print("Loading local data...");
+    const storage = FlutterSecureStorage();
+    
     final setincome = await localcached();
     print("Local cached data: $setincome");
 
@@ -205,12 +209,23 @@ class _HomepageState extends ConsumerState<Homepage> {
       if (setincome['budget'] != null) {
         spend = double.tryParse(setincome['budget']) ?? 0.0;
         total = (total ?? 0) - spend;
+        await storage.write(key: "spendbudget", value: spend.toString());
+        await storage.write(key: "totalbalance", value: total.toString());
       }
-
+      
+      final spendStr = await storage.read(key: "spendbudget");
+      final totalBalStr = await storage.read(key: "totalbalance");
+      if (spendStr != null && totalBalStr != null) {
+        print("Retrieved spendbudget and totalbalance from storage:");
+        spend = double.tryParse(spendStr) ?? 0.0;
+        total = double.tryParse(totalBalStr) ?? 0.0;
+      }
       setState(() {
+        
         totalBalance = total ?? 0.0;
         spendbudget = spend;
         isuiupdated = false;
+        
       });
     } else {
       setState(() {
