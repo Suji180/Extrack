@@ -217,6 +217,7 @@ class _HomepageState extends ConsumerState<Homepage> {
       final totalBalStr = await storage.read(key: "totalbalance");
       if (spendStr != null && totalBalStr != null) {
         print("Retrieved spendbudget and totalbalance from storage:");
+        print("spendbudget: $spendStr, totalbalance: $totalBalStr");
         spend = double.tryParse(spendStr) ?? 0.0;
         total = double.tryParse(totalBalStr) ?? 0.0;
       }
