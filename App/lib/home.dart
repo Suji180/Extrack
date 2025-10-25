@@ -54,7 +54,7 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
   } else {
     expenseList.addAll(expenses);
   }
-  print("testing saved expense list:"); 
+  print("testing saved expense list:");
   print(expenseList);
 
   final dataToStore = {
@@ -94,6 +94,7 @@ Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
       List<Map<String, dynamic>>.from(stored['expense']);
   return expense_list;
 }
+
 Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
   final storage = FlutterSecureStorage();
   String? user = await storage.read(key: 'username');
@@ -126,7 +127,9 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
     print(expense);
     ref.read(expenseDataProvider.notifier).state = [];
     for (var exp in expense) {
-      ref.read(expenseDataProvider.notifier).addExpense(
+      ref
+          .read(expenseDataProvider.notifier)
+          .addExpense(
             ExpenseItem(
               name: exp['name'],
               amount: exp['amount'],
@@ -141,7 +144,6 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
     return null;
   }
 }
-
 
 Future<Map<String, dynamic>?> localcached() async {
   final income = await getincome();
@@ -185,23 +187,23 @@ class _HomepageState extends ConsumerState<Homepage> {
   double? totalBalance = 0;
   bool delayPassed = false;
   File? selectedimage;
- Future<void> loaduiupdated() async{
-  final data = await getincome();
-  setState(() {
-    if(data != null){
-      isuiupdated = false;
-      totalBalance = double.tryParse(data) ?? 0.0;
-      spendbudget = 0.0;
-    } else {
-      isuiupdated = true;
-    }
-  });
- }
+  Future<void> loaduiupdated() async {
+    final data = await getincome();
+    setState(() {
+      if (data != null) {
+        isuiupdated = false;
+        totalBalance = double.tryParse(data) ?? 0.0;
+        spendbudget = 0.0;
+      } else {
+        isuiupdated = true;
+      }
+    });
+  }
 
   Future<void> loadLocalData() async {
     print("Loading local data...");
     const storage = FlutterSecureStorage();
-    
+
     final setincome = await localcached();
     print("Local cached data: $setincome");
 
@@ -215,7 +217,7 @@ class _HomepageState extends ConsumerState<Homepage> {
         await storage.write(key: "spendbudget", value: spend.toString());
         await storage.write(key: "totalbalance", value: total.toString());
       }
-      
+
       final spendStr = await storage.read(key: "spendbudget");
       final totalBalStr = await storage.read(key: "totalbalance");
       if (spendStr != null && totalBalStr != null) {
@@ -225,11 +227,9 @@ class _HomepageState extends ConsumerState<Homepage> {
         total = double.tryParse(totalBalStr) ?? 0.0;
       }
       setState(() {
-        
         totalBalance = total ?? 0.0;
         spendbudget = spend;
         isuiupdated = false;
-        
       });
     } else {
       setState(() {
@@ -396,27 +396,44 @@ class _HomepageState extends ConsumerState<Homepage> {
     //         receiptname: newreceiptNameController.text,
     //       ),
     //     );
-    final expense = {
-      'name': newexpenseNameController.text,
-      'amount': newexpenseAmountController.text,
-      'date': DateTime.now().toIso8601String(),
-      'receiptname': newreceiptNameController.text,
-      'imagePath': _pickedImage!.path,
-    };
+    if (newexpenseAmountController.text.isEmpty ||
+        newexpenseNameController.text.isEmpty) {
+      print("Please fill all fields and select an image");
+      final data = await postimageinn8n(_pickedImage!.path);
+      print(data);
+      final updateexpense = {
+        'name': data != null ? data['category'] : 'Uncategorized',
+        'amount': data != null ? data['amount'] : 0,
+        'date': DateTime.now().toIso8601String(),
+        'receiptname': newreceiptNameController.text,
+        'imagePath': _pickedImage!.path,
+      };
+      final updateexpenseList = [updateexpense];
+      print("updated expense to save:$updateexpenseList");
+      saveExpensewithexpiry(updateexpenseList);
+      return;
+    } else {
+      final expense = {
+        'name': newexpenseNameController.text,
+        'amount': newexpenseAmountController.text,
+        'date': DateTime.now().toIso8601String(),
+        'receiptname': newreceiptNameController.text,
+        'imagePath': _pickedImage!.path,
+      };
 
-    final expenseList = [expense];
+      final expenseList = [expense];
 
-    saveExpensewithexpiry(expenseList);
+      saveExpensewithexpiry(expenseList);
+
+      postexpenses(
+        newexpenseNameController.text,
+        int.tryParse(newexpenseAmountController.text) ?? 0,
+        newreceiptNameController.text,
+        _pickedImage!.path,
+      );
+    }
+
     addui(ref);
-    postexpenses(
-      newexpenseNameController.text,
-      int.tryParse(newexpenseAmountController.text) ?? 0,
-      newreceiptNameController.text,
-      _pickedImage!.path,
-    );
-    final data = await postimageinn8n(_pickedImage!.path);
-    print(data);
-    saveExpensewithexpiry(data != null ? [data] : []);
 
     await loadLocalData();
 
@@ -599,7 +616,7 @@ class _HomepageState extends ConsumerState<Homepage> {
                                           isuiupdated = false;
                                           totalBalance =
                                               (totalBalance ?? 0) +
-                                                  (result['amount'] ?? 0);
+                                              (result['amount'] ?? 0);
                                         });
                                       }
                                       // if (true) {
