@@ -97,46 +97,54 @@ Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
 
 Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
   final storage = FlutterSecureStorage();
-  String? user = await storage.read(key: 'username');
-  print("user addui: $user");
-  if (user == null) return null;
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
-  String? lastdataload = await storage.read(key: 'last_data_load_$user');
-  if (lastdataload != null) {
-    final lastLoadDate = DateTime.tryParse(lastdataload);
-    if (lastLoadDate != null && lastLoadDate.isBefore(today)) {
-      print("Last data load was before today, clearing expense data provider");
-      ref.read(expenseDataProvider.notifier).state = [];
-      await storage.write(
-        key: 'last_data_load_$user',
-        value: today.toIso8601String(),
-      );
+  // String? user = await storage.read(key: 'username');
+  // print("user addui: $user");
+  // if (user == null) return null;
+  // final now = DateTime.now();
+  // final today = DateTime(now.year, now.month, now.day);
+  // String? lastdataload = await storage.read(key: 'last_data_load_$user');
+  // if (lastdataload != null) {
+  //   final lastLoadDate = DateTime.tryParse(lastdataload);
+  //   if (lastLoadDate != null && lastLoadDate.isBefore(today)) {
+  //     print("Last data load was before today, clearing expense data provider");
+  //     ref.read(expenseDataProvider.notifier).state = [];
+  //     await storage.write(
+  //       key: 'last_data_load_$user',
+  //       value: today.toIso8601String(),
+  //     );
 
-      return [];
-    }
-  } else {
-    await storage.write(
-      key: 'last_data_load_$user',
-      value: today.toIso8601String(),
-    );
-  }
+  //     return [];
+  //   }
+  // } else {
+  //   await storage.write(
+  //     key: 'last_data_load_$user',
+  //     value: today.toIso8601String(),
+  //   );
+  // }
   final expense = await getExpensewithexpiry();
   if (expense != null) {
     print("Expense retrieved from local cache:");
     print(expense);
+
     ref.read(expenseDataProvider.notifier).state = [];
     for (var exp in expense) {
-      ref
-          .read(expenseDataProvider.notifier)
-          .addExpense(
-            ExpenseItem(
-              name: exp['name'],
-              amount: exp['amount'],
-              date: DateTime.parse(exp['date']),
-              receiptname: exp['receiptname'],
-            ),
-          );
+      DateTime expDate = DateTime.parse(exp['date']);
+      if (expDate.year == today.year &&
+          expDate.month == today.month &&
+          expDate.day == today.day) {
+        ref
+            .read(expenseDataProvider.notifier)
+            .addExpense(
+              ExpenseItem(
+                name: exp['name'],
+                amount: exp['amount'],
+                date: DateTime.parse(exp['date']),
+                receiptname: exp['receiptname'],
+              ),
+            );
+      }
     }
     return expense;
   } else {
@@ -183,8 +191,8 @@ class _HomepageState extends ConsumerState<Homepage> {
   final TextEditingController newreceiptNameController =
       TextEditingController();
   bool? isuiupdated;
-  double spendbudget = 0;
-  double? totalBalance = 0;
+  double spendbudget = double.parse((0.00).toStringAsFixed(2));
+  double? totalBalance = double.parse((0.00).toStringAsFixed(2));
   bool delayPassed = false;
   File? selectedimage;
   Future<void> loaduiupdated() async {
