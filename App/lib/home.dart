@@ -54,6 +54,8 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
   } else {
     expenseList.addAll(expenses);
   }
+  print("testing saved expense list:"); 
+  print(expenseList);
 
   final dataToStore = {
     'expense': expenseList,
@@ -412,7 +414,10 @@ class _HomepageState extends ConsumerState<Homepage> {
       newreceiptNameController.text,
       _pickedImage!.path,
     );
-    postimageinn8n(_pickedImage!.path);
+    final data = await postimageinn8n(_pickedImage!.path);
+    print(data);
+    saveExpensewithexpiry(data != null ? [data] : []);
+
     await loadLocalData();
 
     clear();
