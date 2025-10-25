@@ -98,6 +98,7 @@ Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
 Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
   final storage = FlutterSecureStorage();
   final now = DateTime.now();
+  print("addui now: $now");
   final today = DateTime(now.year, now.month, now.day);
   // String? user = await storage.read(key: 'username');
   // print("user addui: $user");
@@ -419,7 +420,9 @@ class _HomepageState extends ConsumerState<Homepage> {
       final updateexpenseList = [updateexpense];
       print("updated expense to save:$updateexpenseList");
       saveExpensewithexpiry(updateexpenseList);
-      return;
+      addui(ref);
+      await loadLocalData();
+      
     } else {
       final expense = {
         'name': newexpenseNameController.text,
@@ -439,18 +442,16 @@ class _HomepageState extends ConsumerState<Homepage> {
         newreceiptNameController.text,
         _pickedImage!.path,
       );
+      addui(ref);
+      await loadLocalData();
+      
+
     }
-
-    addui(ref);
-
-    await loadLocalData();
-
     clear();
     // close the dialog
 
     Navigator.of(context).pop();
   }
-
   void cancel() {
     print("cancelled");
     Navigator.of(context).pop();
