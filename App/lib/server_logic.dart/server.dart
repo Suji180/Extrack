@@ -3,7 +3,8 @@ import 'dart:convert' as response;
 import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 //New bracnh created name : frontend
 
 Future<void> postUser(String name, String age) async {
@@ -97,24 +98,43 @@ Future<void> postexpenses(
     print("Error Adding expense: $e");
   }
 }
-Future<void> postimageinn8n(String filepath)async{
-  try{
+
+Future<void> postimageinn8n(String filepath) async {
+  try {
     print("Posting image to inn8n workflow");
-    var url = Uri.parse("https://saroo.app.n8n.cloud/webhook-test/b999aaa2-0b88-4d03-9fc8-0766de85835f");
+    var url = Uri.parse(
+      "https://saroo.app.n8n.cloud/webhook-test/b999aaa2-0b88-4d03-9fc8-0766de85835f",
+    );
     var request = http.MultipartRequest('POST', url);
-    request.files.add(await http.MultipartFile.fromPath('image', filepath,filename: filepath.split('/').last));
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'image',
+        filepath,
+        filename: filepath.split('/').last,
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    );
     var response = await request.send();
     if (response.statusCode == 200 || response.statusCode == 201) {
-      print(response);
-      print("Image posted successfully to inn8n");
+      var responseBody = await response.stream.bytesToString();
+      var jsonResponse = json.decode(responseBody);
+      var innerText = jsonResponse["content"]["parts"][0]["text"];
+
+      innerText = innerText.replaceAll(RegExp(r'```json|```'), '').trim();
+
+      var actualData = json.decode(innerText);
+      print("updated data from inn8n:");
+
+      print("Category: ${actualData["category"]}");
+      print("Amount: ${actualData["amount"]}");
     } else {
       print("Image posting to inn8n failed");
-  }
-}
-  catch(e){
+    }
+  } catch (e) {
     print("Error posting image to inn8n: $e");
   }
 }
+
 Future<void> google_auth(String authCode) async {
   try {
     final url = Uri.parse("http://10.0.2.2:8000/glogin");
@@ -207,8 +227,6 @@ Future<void> addincome(
     print("error occured $e");
   }
 }
-
-
 
 Future<void> saveincome(String income) async {
   final storage = FlutterSecureStorage();
