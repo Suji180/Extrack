@@ -13,6 +13,8 @@ import os
 import uuid
 import random
 import requests
+import jwt
+from datetime import datetime, timezone, timedelta
 
 load_dotenv()
 load = APIRouter()
@@ -32,6 +34,7 @@ async def signup(user: Signup, conn = Depends(get_connection)):
         otp_sent = await send_otp(user.email, WEB_HOOK, conn)
         if otp_sent:
             hashed_otp = await conn.fetchrow("SELECT hashed_otp FROM user_otps ORDER BY created_at DESC;")
+            
             otp = otp_sent['otp_sent']
             hashed_otp = str(hashed_otp[0])
 
@@ -147,7 +150,7 @@ def exchange_code(auth_code: str):
         )
 
         return {
-                "user_id": user_data.get("sub"),
+                "user_id": int(user_data.get("sub")),
                 "name": user_data.get("name"),
                 "email_id": user_data.get("email"),
                 "refresh_token": refresh_token
@@ -157,17 +160,17 @@ def exchange_code(auth_code: str):
         print(f"Token Exchange failed : {e}")
         return {"Error": f"Authentication Failed : {e}"}, 401
 
-import datetime, jwt
+
 jwt_secret_key = os.getenv("JWT_SECRET_KEY")
 jwt_algorithm = os.getenv("JWT_ALGORITHM")
 
 def create_jwt_for_guser(username: str, user_id: str, email: str) -> str:
     user_id = str(user_id)
-    exp_time = datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    exp_time = datetime.utcnow() + timedelta(days=7)
     payload = {
         "exp": exp_time,
         "name": username,
-        "iat": datetime.datetime.utcnow(),
+        "iat": datetime.utcnow(),
         "sub": user_id,
         "email": email,
         "session_type": "custom"
@@ -214,10 +217,10 @@ async def google_login(token: glogin, conn = Depends(get_connection)):
     
 def create_jwt_for_nuser(user_id: str, email_id: str) -> str:
     user_id = str(user_id)
-    exp_time = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+    exp_time = datetime.utcnow() + timedelta(days=1)
     payload = {
         "sub": user_id,
-        "iat": datetime.datetime.utcnow(),
+        "iat": datetime.utcnow(),
         "exp": exp_time,
         "email": email_id,
         "session_type": "custom"
