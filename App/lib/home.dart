@@ -68,7 +68,6 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
   print(dataToStore);
 }
 
-
 Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
   const storage = FlutterSecureStorage();
   String? user = await storage.read(key: 'username');
@@ -130,24 +129,23 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
     print("Expense retrieved from local cache:");
     print(expense);
 
-    ref.read(expenseDataProvider.notifier).state = [];
+    List<ExpenseItem> todayExpenses = [];
     for (var exp in expense) {
       DateTime expDate = DateTime.parse(exp['date']);
       if (expDate.year == today.year &&
           expDate.month == today.month &&
           expDate.day == today.day) {
-        ref
-            .read(expenseDataProvider.notifier)
-            .addExpense(
-              ExpenseItem(
-                name: exp['name'],
-                amount: exp['amount'],
-                date: DateTime.parse(exp['date']),
-                receiptname: exp['receiptname'],
-              ),
-            );
+        todayExpenses.add(
+          ExpenseItem(
+            name: exp['name'],
+            amount: exp['amount'],
+            date: expDate,
+            receiptname: exp['receiptname'],
+          ),
+        );
       }
     }
+    ref.read(expenseDataProvider.notifier).state = todayExpenses;
     return expense;
   } else {
     print("No valid expense found in local cache or it has expired.");
@@ -419,11 +417,11 @@ class _HomepageState extends ConsumerState<Homepage> {
         'imagePath': _pickedImage!.path,
       };
       final updateexpenseList = [updateexpense];
+
       print("updated expense to save:$updateexpenseList");
-      saveExpensewithexpiry(updateexpenseList);
-      addui(ref);
+      await saveExpensewithexpiry(updateexpenseList);
+      await addui(ref);
       await loadLocalData();
-      
     } else {
       final expense = {
         'name': newexpenseNameController.text,
@@ -435,7 +433,7 @@ class _HomepageState extends ConsumerState<Homepage> {
 
       final expenseList = [expense];
 
-      saveExpensewithexpiry(expenseList);
+      await saveExpensewithexpiry(expenseList);
 
       postexpenses(
         newexpenseNameController.text,
@@ -443,16 +441,15 @@ class _HomepageState extends ConsumerState<Homepage> {
         newreceiptNameController.text,
         _pickedImage!.path,
       );
-      addui(ref);
+      await addui(ref);
       await loadLocalData();
-      
-
     }
     clear();
     // close the dialog
 
     Navigator.of(context).pop();
   }
+
   void cancel() {
     print("cancelled");
     Navigator.of(context).pop();
