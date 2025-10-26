@@ -1,6 +1,8 @@
 import 'package:extrack/Login_sign_up_page/SignUP%20page.dart';
-import 'package:extrack/Login_sign_up_page/loginpage.dart';
+//import 'package:extrack/Login_sign_up_page/loginpage.dart';
 import 'package:flutter/material.dart';
+
+import 'package:extrack/Login_sign_up_page/LoginPage.dart';
 
 
 
@@ -19,7 +21,7 @@ class Profile extends StatelessWidget {
               
               child: GestureDetector(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => SecondPage(),));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
                 },
                 child: Container(
                   

@@ -4,6 +4,7 @@ import 'package:extrack/Login_sign_up_page/loginpage.dart';
 import 'package:extrack/home.dart';
 import 'package:flutter/material.dart';
 import 'package:extrack/server_logic.dart/server.dart';
+import 'package:extrack/Login_sign_up_page/Secondpage.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -40,11 +41,11 @@ class SignUpPageState extends State<SignUpPage> {
       ),
       body: Container(
         decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/bg.jpg'),
-            fit: BoxFit.cover,
-          ),
-        ),
+          //  image: DecorationImage(
+          //    image: AssetImage('assets/bg.jpg'),
+          //    fit: BoxFit.cover,
+          // ),
+         ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -184,6 +185,7 @@ class SignUpPageState extends State<SignUpPage> {
                       backgroundColor: const Color.fromARGB(255, 57, 116, 219),
                     ),
                     onPressed: () async {
+                      print("button clicked");
                       if (_emailController.text.isEmpty ||
                           _passwordController.text.isEmpty ||
                           _confirmPasswordController.text.isEmpty) {
@@ -200,25 +202,26 @@ class SignUpPageState extends State<SignUpPage> {
                         return;
                       }
 
-                      try {
-                        await adduser(
-                          _emailController.text.trim(),
-                          _passwordController.text.trim(),
-                        );
+                      // try {
+                      //   await adduser(
+                      //     _emailController.text.trim(),
+                      //     _passwordController.text.trim(),
+                      //   );
 
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(builder: (context) => SecondPage()),
+
                         );
-                      } catch (e) {
-                        print("Error: $e");
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Signup failed")),
-                        );
-                      }
+                        print("navigation sent");
+                      // } catch (e) {
+                      //   print("Error: $e");
+                      //   ScaffoldMessenger.of(context).showSnackBar(
+                      //     const SnackBar(content: Text("Signup failed")),
+                      //   );
+                      // }
                     },
-                    child: const Text(
-                      'Continue',
+                    child: const Text('Continue',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,

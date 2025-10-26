@@ -8,14 +8,14 @@ import 'package:extrack/Login_sign_up_page/googleauth.dart';
 
 
 
-class SecondPage extends StatefulWidget {
-  const SecondPage({super.key});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  State<SecondPage> createState() => SecondPageState();
+  State<LoginPage> createState() => SecondPageState();
 }
 
-class SecondPageState extends State<SecondPage> {
+class SecondPageState extends State<LoginPage> {
 
    final _emailController = TextEditingController();
    final _passwordController = TextEditingController();
