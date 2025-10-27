@@ -1,50 +1,254 @@
 from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter
 from pydantic import BaseModel
-import psycopg
-from basemodel import Signup, Login
-from db import db_connection
+import asyncpg
+from basemodel import Signup, Login, glogin
+from db import get_connection
 import bcrypt
+from google.oauth2 import id_token
+from google.auth.transport import requests as g_requests
+from google_auth_oauthlib.flow import Flow
+from dotenv import load_dotenv
+from  starlette.concurrency import run_in_threadpool
+import os
+import uuid
+import random
+import requests
+import jwt
+from datetime import datetime, timezone, timedelta
 
+load_dotenv()
 load = APIRouter()
 
+WEB_HOOK = os.getenv("N8N_WEBHOOK_URL")
+print(WEB_HOOK)
+
 @load.post("/signup")
-async def signup(user: Signup):
+async def signup(user: Signup, conn = Depends(get_connection)):
     passwd = user.password
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(passwd.encode('utf-8'), salt)
     passwd = hashed.decode('utf-8')
-    conn = db_connection()
-    cursor = conn.cursor()
+    uid = uuid.uuid4()
+    uid = uid.int
     try:
-        cursor.execute("INSERT INTO users (email_id, passwd) VALUES (%s,%s)", (user.email, passwd))
-        conn.commit()
-        return {"Message" : "The Signup is Successful"}
+        otp_sent = await send_otp(user.email, WEB_HOOK, conn)
+        if otp_sent:
+            hashed_otp = await conn.fetchrow("SELECT hashed_otp FROM user_otps ORDER BY created_at DESC;")
+            
+            otp = otp_sent['otp_sent']
+            hashed_otp = str(hashed_otp[0])
 
-    except psycopg.Error as error:
+            otp = str(otp)
+            if bcrypt.checkpw(otp.encode('utf-8'), hashed_otp.encode('utf-8')):
+                await conn.execute("INSERT INTO users (id, email_id, passwd) VALUES ($1, $2, $3)", uid, user.email, passwd)
+                return {"Message" : "The Signup is Successful"}
+            else:
+                return {"message": "Signup failed"}
+
+    except asyncpg.PostgresError as error:
         raise HTTPException(status_code = 500, detail = f"{error}")
+    
 
-    finally:
-        cursor.close()
-        conn.close()
+async def send_otp(email, web_hook_url, conn):
+    otp = random.randint(100000, 999999)
+    otp = str(otp)
+    salt = bcrypt.gensalt()
+    hash_otp = bcrypt.hashpw(otp.encode('utf-8'), salt)
+    hashed_otp  = hash_otp.decode('utf-8')
+    otp = int(otp)
+
+    await conn.execute("INSERT INTO user_otps (hashed_otp) VALUES ($1)", hashed_otp)
+
+    payload = {
+        "email":email,
+        "otp": otp
+    }
+
+    try:
+        response = requests.post(web_hook_url, json = payload, timeout = 10)
+
+        if response.status_code == 200:
+            print(f"Successfully sent {otp} for email_address : {email} to N8N")
+            return {"otp_sent": otp}
+        
+        else:
+            print(f"Error when sending otp for email_address: {email}")
+            print(response.text)
+            return {"Message": "N8N Failed"}
+        
+    except Exception as e:
+        print(f"Error when making the post request : {e}")
 
 @load.post("/login")
-async def login(user: Login):
+async def login(user: Login, conn = Depends(get_connection)):
     passwd = user.password
-    conn = db_connection()
-    cursor = conn.cursor()
     try:
-        cursor.execute("SELECT email_id, passwd FROM users WHERE email_id = %s", (user.email,))
-        content = cursor.fetchone()
+        content = await conn.fetchrow("SELECT id, email_id, passwd FROM users WHERE email_id = $1", user.email,)
         if not content:
             raise HTTPException(status_code = 404, detail = "Email is wrong")
             
-        if not bcrypt.checkpw(passwd.encode('utf-8'), content[1].encode('utf-8')):
+        if not bcrypt.checkpw(passwd.encode('utf-8'), content[2].encode('utf-8')):
             raise HTTPException(status_code = 404, detail = "Password is wrong")
+        
+        uid, email_id = content[0], content[1]
 
-        return {"Message": "Login Successful"}
-    except psycopg.Error as e:
+        jwt_token = create_jwt_for_nuser(uid, email_id)
+        print(jwt_token)
+
+        return {"session_token": jwt_token, "username": user.email}
+    
+    except asyncpg.PostgresError as e:
         raise HTTPException(status_code = 500, detail = f"{e}")
 
-    finally:
-        cursor.close()
-        conn.close()
+
+CLIENT_ID = "485207706280-fhngt4kc2gokku7c50uqc79ucpvl0h29.apps.googleusercontent.com"
+CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+REDIRECT_URI = "https://oauth2.googleapis.com/token" 
+TOKEN_URI = "https://oauth2.googleapis.com/token"
+AUTH_URI = "https://accounts.google.com/o/oauth2/auth"
+
+# print(CLIENT_SECRET)
+
+def exchange_code(auth_code: str):
+    print("Auth_code after function call:", auth_code)
+    if not auth_code:
+        return {"Error": "Missing Auth code"}, 400
+    
+    try:
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                "token_uri" : TOKEN_URI,
+                "auth_uri": AUTH_URI,
+                "client_id" : CLIENT_ID,
+                "client_secret" : CLIENT_SECRET,
+                }
+            },
+            scopes=['https://www.googleapis.com/auth/userinfo.email',
+                'https://www.googleapis.com/auth/userinfo.profile',
+                'openid' ],
+            redirect_uri = REDIRECT_URI
+
+        )
+        flow.fetch_token(code=auth_code)
+        tokens = flow.credentials
+
+        print("All Tokens:", tokens)
+
+        refresh_token = tokens.refresh_token
+        print(refresh_token)
+        id_token_jwt = tokens.id_token
+        access_token = tokens.token
+
+        if not id_token_jwt:
+            return {"Message": "Failed to get the id_token from Google"}, 500
+        
+        user_data = id_token.verify_oauth2_token(
+            id_token_jwt,
+            g_requests.Request(),
+            CLIENT_ID
+        )
+
+        return {
+                "user_id": int(user_data.get("sub")),
+                "name": user_data.get("name"),
+                "email_id": user_data.get("email"),
+                "refresh_token": refresh_token
+            }
+
+    except Exception as e:
+        print(f"Token Exchange failed : {e}")
+        return {"Error": f"Authentication Failed : {e}"}, 401
+
+
+jwt_secret_key = os.getenv("JWT_SECRET_KEY")
+jwt_algorithm = os.getenv("JWT_ALGORITHM")
+
+def create_jwt_for_guser(username: str, user_id: str, email: str) -> str:
+    user_id = str(user_id)
+    exp_time = datetime.utcnow() + timedelta(days=7)
+    payload = {
+        "exp": exp_time,
+        "name": username,
+        "iat": datetime.utcnow(),
+        "sub": user_id,
+        "email": email,
+        "session_type": "custom"
+    }
+
+    encoded_jwt = jwt.encode(
+        payload,
+        jwt_secret_key,
+        algorithm = jwt_algorithm
+    )
+
+    return encoded_jwt
+
+@load.post("/glogin")
+async def google_login(token: glogin, conn = Depends(get_connection)):
+    auth_code = token.AuthCode
+    print("Auth_code:", auth_code)
+    try:
+        data = await run_in_threadpool(exchange_code, auth_code)
+
+        user_id = data['user_id']
+        user_id = int(user_id)
+        name = data['name']
+        email_id = data['email_id']
+        refresh_token = data['refresh_token']
+
+        await conn.execute("""
+                           INSERT INTO gauth (id, name, email_id, refresh_token) 
+                           VALUES ($1, $2, $3, $4) 
+                           ON CONFLICT (id) DO UPDATE 
+                           SET refresh_token = EXCLUDED.refresh_token;
+                           """,
+                           user_id, name, email_id, refresh_token
+                        )
+        
+        custom_jwt = create_jwt_for_guser(username = name, user_id = user_id, email = email_id)
+
+        name = get_user_name(custom_jwt)
+        print(name)
+        return {"session_token": custom_jwt, "username": name}
+
+    except asyncpg.PostgresError as e:
+        raise HTTPException(status_code = 500, detail= f"{e}")
+    
+def create_jwt_for_nuser(user_id: str, email_id: str) -> str:
+    user_id = str(user_id)
+    exp_time = datetime.utcnow() + timedelta(days=1)
+    payload = {
+        "sub": user_id,
+        "iat": datetime.utcnow(),
+        "exp": exp_time,
+        "email": email_id,
+        "session_type": "custom"
+    }
+
+    encoded_jwt = jwt.encode(
+        payload,
+        jwt_secret_key,
+        algorithm = jwt_algorithm
+    )
+
+    return encoded_jwt
+
+# print(jwt_algorithm)
+# print(jwt_secret_key)
+
+def get_user_name(jwt_token):
+    data = jwt.decode(
+        jwt_token,
+        jwt_secret_key,
+        algorithms = [jwt_algorithm]
+    )
+
+    # n_username = data.get("email")
+    # if n_username == "saravanesh962006@gmail.com" or "itsmenivas007@gmail.com":
+    #     pass
+    # else:
+    #     return n_username
+    print("Decoded_jwt:", data)
+    g_username = data.get("name")
+    return g_username
