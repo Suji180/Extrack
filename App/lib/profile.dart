@@ -2,7 +2,7 @@ import 'package:extrack/Login_sign_up_page/SignUP%20page.dart';
 //import 'package:extrack/Login_sign_up_page/loginpage.dart';
 import 'package:flutter/material.dart';
 
-import 'package:extrack/Login_sign_up_page/LoginPage.dart';
+import 'package:extrack/Login_sign_up_page/loginpage.dart';
 
 
 

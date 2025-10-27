@@ -47,12 +47,10 @@ class _SecondPageState extends State<SecondPage> {
   }
 
 
-  Widget _buildOtpBox(int index,BuildContext context) {
-    final TextScaler ts= MediaQuery.textScalerOf(context);
-    final double scaleFactor=ts.scale((1.0));
-    final size=50.0* scaleFactor +6.0;
+  Widget _buildOtpBox(int index) {
     return SizedBox(
-      height: size,
+      width: 50,
+      height: 50,
       child: TextField(
         controller: _controllers[index],
         focusNode: _focusNodes[index],
@@ -62,10 +60,6 @@ class _SecondPageState extends State<SecondPage> {
         maxLength: 1,
         decoration: InputDecoration(
           counterText: "",
-          contentPadding: EdgeInsets.symmetric(
-            vertical: 4*scaleFactor,
-            horizontal: 0,
-          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: const BorderSide(color: Colors.black),
@@ -117,16 +111,8 @@ class _SecondPageState extends State<SecondPage> {
             const SizedBox(height: 40),
 
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(6, (index)
-              {
-                return Expanded(
-                  child:Padding(
-                      padding:const EdgeInsets.symmetric(horizontal: 4.0),
-                      child:  _buildOtpBox(index,context),
-                  ),
-                );
-              }),
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(6, (index) => _buildOtpBox(index)),
             ),
 
             const SizedBox(height: 30),

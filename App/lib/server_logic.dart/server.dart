@@ -25,18 +25,35 @@ Future<void> postUser(String name, String age) async {
 //   postUser("Saravanesh", "21");
 // }
 
-Future<void> adduser(String email, String password) async {
+Future<void> adduser(String email) async {
   try {
     final url = Uri.parse("http://10.0.2.2:8000/signup");
     final response = await http.post(
       url,
       headers: {'Content-type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
+      body: jsonEncode({'email': email}),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       print("sign up Successfully");
     } else {
       print("not signup ");
+    }
+  } catch (e) {
+    print("error occured $e");
+  }
+}
+Future<void> otpverify(String email, String password,int otp) async {
+  try {
+    final url = Uri.parse("http://10.0.2.2:8000/otp");
+    final response = await http.post(
+      url,
+      headers: {'Content-type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password,'otp':otp}),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print("otp verify Successfully");
+    } else {
+      print("otp not verify ");
     }
   } catch (e) {
     print("error occured $e");

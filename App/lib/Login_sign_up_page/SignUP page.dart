@@ -202,24 +202,26 @@ class SignUpPageState extends State<SignUpPage> {
                         return;
                       }
 
-                      // try {
-                      //   await adduser(
-                      //     _emailController.text.trim(),
-                      //     _passwordController.text.trim(),
-                      //   );
+                      try {
+                        await adduser(
+                          _emailController.text.trim()
+                        );
 
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => SecondPage()),
+                          MaterialPageRoute(builder: (context) => SecondPage(
+                            email: _emailController.text.trim(),
+                            password: _passwordController.text.trim(),
+                          )),
 
                         );
-                        print("navigation sent");
-                      // } catch (e) {
-                      //   print("Error: $e");
-                      //   ScaffoldMessenger.of(context).showSnackBar(
-                      //     const SnackBar(content: Text("Signup failed")),
-                      //   );
-                      // }
+                        print("navigati on sent");
+                      } catch (e) {
+                        print("Error: $e");
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Signup failed")),
+                        );
+                      }
                     },
                     child: const Text('Continue',
                       style: TextStyle(
@@ -289,7 +291,10 @@ class SignUpPageState extends State<SignUpPage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const SecondPage()),
+                        MaterialPageRoute(builder: (context) => const SecondPage(
+                          email: '',
+                          password: '',
+                        )),
                       );
                     },
                     child: const Text(
