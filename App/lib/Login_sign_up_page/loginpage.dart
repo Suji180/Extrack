@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:extrack/server_logic.dart/server.dart';
 import 'package:extrack/Login_sign_up_page/googleauth.dart';
+import 'package:extrack/main.dart';
 
 
 
@@ -157,8 +158,10 @@ class SecondPageState extends State<LoginPage> {
                         backgroundColor: const Color.fromARGB(255, 57, 116, 219),
                       ),
                       onPressed: () async {
-                        await getuser(_emailController.text.trim(), _passwordController.text.trim());
-                       /* try {
+                        await getuser(_emailController.text.trim(),
+                            _passwordController.text.trim());
+
+                        /* try {
                           await signIN();
                           // No need to manually navigate, Checklog will update automatically
                         } on FirebaseAuthException catch (e) {
@@ -168,9 +171,10 @@ class SecondPageState extends State<LoginPage> {
                         } 
                         dei if you are working with database these above commented code will help you 
                         */
-                        
-                        Navigator.pop(
-                          context, MaterialPageRoute(builder: (context) => Homepage())
+
+                        Navigator.pushReplacement(
+                            context, MaterialPageRoute(
+                            builder: (context) => const Homepage())
                         );
                       },
                       child: const Text(

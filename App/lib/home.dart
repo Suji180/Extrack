@@ -15,6 +15,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path_lib;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -427,14 +429,14 @@ class _HomepageState extends ConsumerState<Homepage> {
    return status.isGranted;
  }
 
-
+final AudioRecorder audioRecorder=AudioRecorder();
   Future<void> startRecording() async{
      if(await getPermission()) {
        print("got permission");
-       final Directory dir= await getTemporaryDirectory();
+       final Directory dir= await getApplicationDocumentsDirectory();
        final String audiopath= '${dir.path}/_voice_note_${DateTime.now().millisecondsSinceEpoch}.mp4';
 
-       await AudioRecorder().start(
+       await audioRecorder.start(
          const RecordConfig(
            encoder:AudioEncoder.aacLc
          ),
@@ -444,18 +446,54 @@ class _HomepageState extends ConsumerState<Homepage> {
   }
 
   Future<String?> stopRecording() async{
-    final String? path=await AudioRecorder().stop();
+    final String? path=await audioRecorder.stop();
     return path;
   }
+
+
  final String URL='https://saroo.app.n8n.cloud/webhook/e73d38f1-8e13-40e4-984a-538e234367ab';
   Future<bool> sendAudioToN8N(String? path) async{
     if(path!=null)
       {
         final File audiofile= File(path);
+        if(!await audiofile.exists())
+          {
+            print("Audio file doesn't exists");
+          }
+
         final uri= Uri.parse(URL);
-        //var request=http.Multiparserequest()
+        var request=http.MultipartRequest('POST',uri);
+
+        try {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+                'audio', path, filename: path_lib.basename(path)),
+          );
+          final response = await request.send();
+          final result = await response.stream.bytesToString();
+
+          if (response.statusCode == 200) {
+            print("Sent success");
+            print('$result');
+            try {
+              await(audiofile.delete());
+              print("Audio file removed from storage");
+            }
+            catch(e){print('Failed to remove');}
+            return true;
+          }
+          else{
+            print("Upload fail ${response.statusCode}");
+            print("$result");
+            return false;
+          }
+        }
+              catch(e) {
+              print("error in sending file");
+              return false;
+        }
       }
-    return true;
+    else{ print("path is not correct");return false;}
   }
 
   void add() async {
