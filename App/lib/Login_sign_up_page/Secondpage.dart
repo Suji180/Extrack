@@ -166,7 +166,16 @@ class _SecondPageState extends State<SecondPage> {
                       ),
                     ),
 
-                    onPressed: _isOtpComplete ? _onConfirm : null,
+                    onPressed: _isOtpComplete
+                        ? () {
+                            String otp = _controllers.map((c) => c.text).join();
+                            otpverify(
+                              widget.email,
+                              widget.password,
+                              int.parse(otp),
+                            );
+                          }
+                        : null,
                     child: const Text(
                       'Confirm',
                       style: TextStyle(color: Colors.white, fontSize: 16),

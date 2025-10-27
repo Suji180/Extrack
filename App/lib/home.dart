@@ -20,7 +20,8 @@ import 'package:path/path.dart' as path_lib;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'package:http_parser/http_parser.dart'; 
+import 'package:http_parser/http_parser.dart';
+
 class Homepage extends ConsumerStatefulWidget {
   const Homepage({super.key});
 
@@ -311,26 +312,24 @@ class _HomepageState extends ConsumerState<Homepage> {
                 Row(
                   children: [
                     Expanded(
-                        child: TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Record voice',
-                        hintText: 'Hold to record voice',
+                      child: TextField(
+                        decoration: const InputDecoration(
+                          labelText: 'Record voice',
+                          hintText: 'Hold to record voice',
+                        ),
                       ),
                     ),
-                   ),
                     GestureDetector(
-                      onLongPress: () async{
+                      onLongPress: () async {
                         await startRecording();
-                    },
-                      onLongPressUp: () async{
-                        String? path= await stopRecording();
+                      },
+                      onLongPressUp: () async {
+                        String? path = await stopRecording();
                         await sendAudioToN8N(path);
-                    },
-                    child: IconButton(
-                        onPressed: null,
-                        icon: Icon(Icons.mic)),
-                    )
-                    ]
+                      },
+                      child: IconButton(onPressed: null, icon: Icon(Icons.mic)),
+                    ),
+                  ],
                 ),
 
                 GestureDetector(
@@ -423,77 +422,105 @@ class _HomepageState extends ConsumerState<Homepage> {
     }
   }
 
- Future<bool> getPermission() async
- {
-   final status= await Permission.microphone.request();
-   return status.isGranted;
- }
-
-final AudioRecorder audioRecorder=AudioRecorder();
-  Future<void> startRecording() async{
-     if(await getPermission()) {
-       print("got permission");
-       final Directory dir= await getApplicationDocumentsDirectory();
-       final String audiopath= '${dir.path}/_voice_note_${DateTime.now().millisecondsSinceEpoch}.mp4';
-
-       await audioRecorder.start(
-         const RecordConfig(
-           encoder:AudioEncoder.aacLc
-         ),
-           path: audiopath
-       );
-     }
+  Future<bool> getPermission() async {
+    final status = await Permission.microphone.request();
+    return status.isGranted;
   }
 
-  Future<String?> stopRecording() async{
-    final String? path=await audioRecorder.stop();
+  final AudioRecorder audioRecorder = AudioRecorder();
+  Future<void> startRecording() async {
+    if (await getPermission()) {
+      print("got permission");
+      final Directory dir = await getApplicationDocumentsDirectory();
+      final String audiopath =
+          '${dir.path}/_voice_note_${DateTime.now().millisecondsSinceEpoch}.mp4';
+
+      await audioRecorder.start(
+        const RecordConfig(encoder: AudioEncoder.aacLc),
+        path: audiopath,
+      );
+    }
+  }
+
+  Future<String?> stopRecording() async {
+    final String? path = await audioRecorder.stop();
     return path;
   }
 
-
- final String URL='https://saroo.app.n8n.cloud/webhook/e73d38f1-8e13-40e4-984a-538e234367ab';
-  Future<bool> sendAudioToN8N(String? path) async{
-    if(path!=null)
-      {
-        final File audiofile= File(path);
-        if(!await audiofile.exists())
-          {
-            print("Audio file doesn't exists");
-          }
-
-        final uri= Uri.parse(URL);
-        var request=http.MultipartRequest('POST',uri);
-
-        try {
-          request.files.add(
-            await http.MultipartFile.fromPath(
-                'voice', path, filename: path_lib.basename(path), contentType: MediaType('audio', 'mpeg'), ),
-          );
-          final response = await request.send();
-          final result = await response.stream.bytesToString();
-
-          if (response.statusCode == 200) {
-            print("Sent success");
-            print('$result');
-            try {
-              await(audiofile.delete());
-              print("Audio file removed from storage");
-            }
-            catch(e){print('Failed to remove');}
-            return true;
-          }
-          else{
-            print("Upload fail ${response.statusCode}");
-            print("$result");
-            return false;
-          }
-        }
-              catch(e) {
-              print("error in sending file");
-              return false;
-        }
+  final String URL =
+      'https://saroo.app.n8n.cloud/webhook/e73d38f1-8e13-40e4-984a-538e234367ab';
+  Future<bool> sendAudioToN8N(String? path) async {
+    if (path != null) {
+      final File audiofile = File(path);
+      if (!await audiofile.exists()) {
+        print("Audio file doesn't exists");
       }
-    else{ print("path is not correct");return false;}
+
+      final uri = Uri.parse(URL);
+      var request = http.MultipartRequest('POST', uri);
+
+      try {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'voice',
+            path,
+            filename: path_lib.basename(path),
+            contentType: MediaType('audio', 'mpeg'),
+          ),
+        );
+        final response = await request.send();
+        final result = await response.stream.bytesToString();
+
+        if (response.statusCode == 200) {
+          print("Sent success");
+          print('$result');
+          var jsonResponse = json.decode(result);
+          var innerText = jsonResponse[0]["content"]["parts"][0]["text"];
+          innerText = innerText.replaceAll(RegExp(r'```json|```'), '').trim();
+          var actualData = json.decode(innerText);
+          print("updated data from inn8n:");
+          print(actualData);
+          if (actualData.containsKey("error") &&
+              actualData["error"] == "not related to expenses") {
+            print("The audio does not relate to expenses.");
+            return false;
+          } else {
+            print("Category: ${actualData["category"]}");
+            print("Amount: ${actualData["amount"]}");
+            final updateexpense = {
+              'name': actualData["category"] ?? 'Uncategorized',
+              'amount': actualData["amount"] ?? 0,
+              'date': DateTime.now().toIso8601String(),
+              'receiptname': newreceiptNameController.text,
+              'imagePath': '',
+            };
+            final updateexpenseList = [updateexpense];
+            print("updated expense to save:$updateexpenseList");
+            await saveExpensewithexpiry(updateexpenseList);
+            await addui(ref);
+            await loadLocalData();
+          }
+
+          try {
+            await (audiofile.delete());
+            print("Audio file removed from storage");
+          } catch (e) {
+            print('Failed to remove');
+          }
+          return true;
+        } else {
+          print("Upload fail ${response.statusCode}");
+          print("$result");
+          return false;
+        }
+      } catch (e) {
+        print("error in sending file");
+        return false;
+      }
+    } else {
+      print("path is not correct");
+      return false;
+    }
   }
 
   void add() async {
@@ -509,6 +536,13 @@ final AudioRecorder audioRecorder=AudioRecorder();
     //         receiptname: newreceiptNameController.text,
     //       ),
     //     );
+    // if(!path==null)
+    // {
+    //   print("image selected");
+    // }
+    // else{
+    //   print("no image selected");
+    // }
     if (newexpenseAmountController.text.isEmpty ||
         newexpenseNameController.text.isEmpty) {
       print("Please fill all fields and select an image");
