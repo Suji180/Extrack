@@ -1,4 +1,4 @@
-import 'package:extrack/home.dart';
+import 'package:extrack/main.dart';
 import 'package:flutter/material.dart';
 
 class SecondPage extends StatefulWidget {
@@ -9,8 +9,8 @@ class SecondPage extends StatefulWidget {
 }
 
 class _SecondPageState extends State<SecondPage> {
-  final List<TextEditingController> _controllers = List.generate(4, (index) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
+  final List<TextEditingController> _controllers = List.generate(6, (index) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
   bool _isOtpComplete = false;
 
   @override
@@ -42,15 +42,15 @@ class _SecondPageState extends State<SecondPage> {
   void _onConfirm() {
     if (_isOtpComplete) {
       Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (context) => const Homepage()));
+          context, MaterialPageRoute(builder: (context) =>  const MainApp()));
     }
   }
 
 
   Widget _buildOtpBox(int index) {
     return SizedBox(
-      width: 60,
-      height: 60,
+      width: 50,
+      height: 50,
       child: TextField(
         controller: _controllers[index],
         focusNode: _focusNodes[index],
@@ -74,7 +74,7 @@ class _SecondPageState extends State<SecondPage> {
 
           if (value.isEmpty && index > 0) {
             _focusNodes[index - 1].requestFocus();
-          } else if (value.isNotEmpty && index < 3) {
+          } else if (value.isNotEmpty && index < 5) {
             _focusNodes[index + 1].requestFocus();
           }
 
@@ -86,7 +86,8 @@ class _SecondPageState extends State<SecondPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return MaterialApp(
+      home:Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(top: 100.0, left: 25.0, right: 25.0),
         child: Column(
@@ -101,7 +102,7 @@ class _SecondPageState extends State<SecondPage> {
             const SizedBox(height: 10),
 
             const Text(
-                'Enter the 4 digit OTP pin send to your email',
+                'Enter the 6 digit OTP pin send to your email',
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -111,7 +112,7 @@ class _SecondPageState extends State<SecondPage> {
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(4, (index) => _buildOtpBox(index)),
+              children: List.generate(6, (index) => _buildOtpBox(index)),
             ),
 
             const SizedBox(height: 30),
@@ -160,6 +161,7 @@ class _SecondPageState extends State<SecondPage> {
           ],
         ),
       ),
+    )
     );
   }
 }

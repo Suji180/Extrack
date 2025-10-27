@@ -12,8 +12,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:extrack/server_logic.dart/server.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:record/record.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
+import 'dart:io';
 
 class Homepage extends ConsumerStatefulWidget {
   const Homepage({super.key});
@@ -301,6 +305,32 @@ class _HomepageState extends ConsumerState<Homepage> {
                     hintText: 'Type your receipt name',
                   ),
                 ),
+
+                Row(
+                  children: [
+                    Expanded(
+                        child: TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Record voice',
+                        hintText: 'Hold to record voice',
+                      ),
+                    ),
+                   ),
+                    GestureDetector(
+                      onLongPress: () async{
+                        await startRecording();
+                    },
+                      onLongPressUp: () async{
+                        String? path= await stopRecording();
+                        await sendAudioToN8N(path);
+                    },
+                    child: IconButton(
+                        onPressed: null,
+                        icon: Icon(Icons.mic)),
+                    )
+                    ]
+                ),
+
                 GestureDetector(
                   onTap: () {
                     _pickImageFromGallery();
@@ -389,6 +419,43 @@ class _HomepageState extends ConsumerState<Homepage> {
         _pickedImage = returnedcam;
       });
     }
+  }
+
+ Future<bool> getPermission() async
+ {
+   final status= await Permission.microphone.request();
+   return status.isGranted;
+ }
+
+
+  Future<void> startRecording() async{
+     if(await getPermission()) {
+       print("got permission");
+       final Directory dir= await getTemporaryDirectory();
+       final String audiopath= '${dir.path}/_voice_note_${DateTime.now().millisecondsSinceEpoch}.mp4';
+
+       await AudioRecorder().start(
+         const RecordConfig(
+           encoder:AudioEncoder.aacLc
+         ),
+           path: audiopath
+       );
+     }
+  }
+
+  Future<String?> stopRecording() async{
+    final String? path=await AudioRecorder().stop();
+    return path;
+  }
+ final String URL='https://saroo.app.n8n.cloud/webhook/e73d38f1-8e13-40e4-984a-538e234367ab';
+  Future<bool> sendAudioToN8N(String? path) async{
+    if(path!=null)
+      {
+        final File audiofile= File(path);
+        final uri= Uri.parse(URL);
+        //var request=http.Multiparserequest()
+      }
+    return true;
   }
 
   void add() async {
