@@ -204,8 +204,7 @@ class SignUpPageState extends State<SignUpPage> {
 
                       try {
                         await adduser(
-                          _emailController.text.trim(),
-                          _passwordController.text.trim(),
+                          _emailController.text.trim()
                         );
 
                         Navigator.pushReplacement(
