@@ -20,7 +20,7 @@ import 'package:path/path.dart' as path_lib;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:http_parser/http_parser.dart'; 
 class Homepage extends ConsumerStatefulWidget {
   const Homepage({super.key});
 
@@ -467,7 +467,7 @@ final AudioRecorder audioRecorder=AudioRecorder();
         try {
           request.files.add(
             await http.MultipartFile.fromPath(
-                'audio', path, filename: path_lib.basename(path)),
+                'voice', path, filename: path_lib.basename(path), contentType: MediaType('audio', 'mpeg'), ),
           );
           final response = await request.send();
           final result = await response.stream.bytesToString();
