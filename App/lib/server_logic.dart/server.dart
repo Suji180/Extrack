@@ -42,6 +42,23 @@ Future<void> adduser(String email, String password) async {
     print("error occured $e");
   }
 }
+Future<void> otpverify(String email, String password,int otp) async {
+  try {
+    final url = Uri.parse("");
+    final response = await http.post(
+      url,
+      headers: {'Content-type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password,'otp':otp}),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print("otp verify Successfully");
+    } else {
+      print("otp not verify ");
+    }
+  } catch (e) {
+    print("error occured $e");
+  }
+}
 
 Future<void> getuser(String email, String password) async {
   try {
