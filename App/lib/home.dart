@@ -565,12 +565,12 @@ class _HomepageState extends ConsumerState<Homepage> {
       await saveExpensewithexpiry(updateexpenseList);
       await addui(ref);
       await loadLocalData();
-      postexpenses(
+      await postexpenses(
         data != null ? data['category'] : 'Uncategorized',
-        data != null ? int.tryParse(data['amount'].toString()) ?? 0 : 0,
-        newreceiptNameController.text,
-        _pickedImage!.path,
+        data != null ? data['amount'] : 0,
+        newreceiptNameController.text, _pickedImage!.path
       );
+      
     } else {
       final expense = {
         'name': newexpenseNameController.text,
@@ -586,7 +586,7 @@ class _HomepageState extends ConsumerState<Homepage> {
 
       await postexpenses(
         newexpenseNameController.text,
-        int.tryParse(newexpenseAmountController.text) ?? 0,
+        newexpenseAmountController.text,
         newreceiptNameController.text,
         _pickedImage!.path,
       );
