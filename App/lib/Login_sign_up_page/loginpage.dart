@@ -1,5 +1,4 @@
 import 'package:extrack/Login_sign_up_page/SignUP%20page.dart';
-import 'package:extrack/home.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:extrack/server_logic.dart/server.dart';
@@ -157,9 +156,9 @@ class SecondPageState extends State<LoginPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color.fromARGB(255, 57, 116, 219),
                       ),
-                      onPressed: () async {
-                        await getuser(_emailController.text.trim(),
-                            _passwordController.text.trim());
+                      // onPressed: () async {
+                      //   await getuser(_emailController.text.trim(),
+                      //       _passwordController.text.trim());
 
                         /* try {
                           await signIN();
@@ -172,11 +171,13 @@ class SecondPageState extends State<LoginPage> {
                         dei if you are working with database these above commented code will help you 
                         */
 
-                        Navigator.pushReplacement(
-                            context, MaterialPageRoute(
-                            builder: (context) => const Homepage())
-                        );
-                      },
+                       onPressed: () {
+                         Navigator.pushReplacement(
+                             context, MaterialPageRoute(
+                             builder: (context) => const MainApp())
+                         );
+                       },
+                      // },
                       child: const Text(
                         ' Sign In ',
                         style: TextStyle(
