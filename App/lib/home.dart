@@ -483,6 +483,7 @@ class _HomepageState extends ConsumerState<Homepage> {
           if (actualData.containsKey("error") &&
               actualData["error"] == "not related to expenses") {
             print("The audio does not relate to expenses.");
+            clear();  
             return false;
           } else {
             print("Category: ${actualData["category"]}");
@@ -499,6 +500,7 @@ class _HomepageState extends ConsumerState<Homepage> {
             await saveExpensewithexpiry(updateexpenseList);
             await addui(ref);
             await loadLocalData();
+            clear();
           }
 
           try {
