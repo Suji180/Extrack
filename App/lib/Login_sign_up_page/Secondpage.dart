@@ -173,6 +173,7 @@ class _SecondPageState extends State<SecondPage> {
                               widget.email,
                               widget.password,
                               int.parse(otp),
+                              _onConfirm,
                             );
                           }
                         : null,
