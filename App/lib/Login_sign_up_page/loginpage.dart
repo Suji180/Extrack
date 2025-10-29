@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:extrack/server_logic.dart/server.dart';
 import 'package:extrack/Login_sign_up_page/googleauth.dart';
 import 'package:extrack/main.dart';
+import 'package:extrack/Login_sign_up_page/ForgetPassword.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -111,11 +112,11 @@ class SecondPageState extends State<LoginPage> {
                     padding: const EdgeInsets.only(right: 25),
                     child: GestureDetector(
                       onTap: () {
-                        /*Navigator.push(
+                        Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const Resetpass())
                           );
-                          */
+
                       },
                       child: const Text(
                         'Forgot Password?',

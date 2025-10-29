@@ -6,8 +6,9 @@ import '../server_logic.dart/server.dart';
 
 class SecondPage extends StatefulWidget {
   final String email;
-  final String password;
-  const SecondPage({super.key, required this.email, required this.password});
+  final String? password;
+  final Widget nextPage;
+  const SecondPage({super.key, required this.email, this.password,required this.nextPage});
   @override
   State<SecondPage> createState() => _SecondPageState();
 }
@@ -49,7 +50,7 @@ class _SecondPageState extends State<SecondPage> {
     if (_isOtpComplete) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const MainApp()),
+        MaterialPageRoute(builder: (context) => widget.nextPage,),
       );
     }
   }
@@ -171,7 +172,7 @@ class _SecondPageState extends State<SecondPage> {
                             String otp = _controllers.map((c) => c.text).join();
                             otpverify(
                               widget.email,
-                              widget.password,
+                              widget.password ?? ' ',
                               int.parse(otp),
                               _onConfirm,
                             );
