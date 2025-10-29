@@ -83,6 +83,23 @@ Future<void> getuser(String email, String password) async {
     print("error occured $e");
   }
 }
+Future<void> resetpassword(String email) async {
+  try {
+    final url = Uri.parse("http://10.0.2.2:8000/forget_password");
+    final response = await http.post(
+      url,
+      headers: {'Content-type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print("reset password link sent Successfully");
+    } else {
+      print("reset password link not sent ");
+    }
+  } catch (e) {
+    print("error occured $e");
+  }
+}
 
 Future<void> postexpenses(
   String category,

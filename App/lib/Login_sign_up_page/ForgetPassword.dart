@@ -2,6 +2,7 @@ import 'package:extrack/Login_sign_up_page/Secondpage.dart';
 import 'package:extrack/main.dart';
 import 'package:flutter/material.dart';
 import 'package:extrack/Login_sign_up_page/PasswordConfirm.dart';
+import 'package:extrack/server_logic.dart/server.dart ';
 
 class Resetpass extends StatefulWidget {
   const Resetpass({super.key});
@@ -78,7 +79,7 @@ class Resetpass extends StatefulWidget {
                      minimumSize: WidgetStateProperty.all(Size(50, 40)),
                    ),
 
-                   onPressed: () {
+                   onPressed: () async {
                      if (!_mailController.text.contains('@gmail.com') ||
                          _mailController.text.isEmpty) {
                        setState(() {
@@ -89,6 +90,7 @@ class Resetpass extends StatefulWidget {
                        _invalidMail=false;
                      }
                      if (!_invalidMail) {
+                      await resetpassword(_mailController.text.trim());
                        Navigator.push(context,
                            MaterialPageRoute(builder: (context) => SecondPage(email: _mailController.text.trim(),nextPage:const confirmPass())));
                      }
