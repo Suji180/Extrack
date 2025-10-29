@@ -84,10 +84,16 @@ Future<void> getuser(String email, String password) async {
 
 Future<void> postexpenses(
   String category,
-  int amount,
+  String amount,
   String receipt,
   String filepath,
 ) async {
+  
+  print("inside post expenses function");
+  print(filepath);
+  print(receipt);
+  print(amount);
+  print(category);
   String? token = await gettoken();
   print(token);
   if (token == null) {

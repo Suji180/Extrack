@@ -483,6 +483,7 @@ class _HomepageState extends ConsumerState<Homepage> {
           if (actualData.containsKey("error") &&
               actualData["error"] == "not related to expenses") {
             print("The audio does not relate to expenses.");
+            clear();
             return false;
           } else {
             print("Category: ${actualData["category"]}");
@@ -499,6 +500,9 @@ class _HomepageState extends ConsumerState<Homepage> {
             await saveExpensewithexpiry(updateexpenseList);
             await addui(ref);
             await loadLocalData();
+            await postexpenses(actualData["category"] ?? 'Uncategorized',
+                actualData["amount"] ?? 0, newreceiptNameController.text, '');
+            clear();
           }
 
           try {
@@ -561,6 +565,12 @@ class _HomepageState extends ConsumerState<Homepage> {
       await saveExpensewithexpiry(updateexpenseList);
       await addui(ref);
       await loadLocalData();
+      await postexpenses(
+        data != null ? data['category'] : 'Uncategorized',
+        data != null ? data['amount'] : 0,
+        newreceiptNameController.text, _pickedImage!.path
+      );
+      
     } else {
       final expense = {
         'name': newexpenseNameController.text,
@@ -574,9 +584,9 @@ class _HomepageState extends ConsumerState<Homepage> {
 
       await saveExpensewithexpiry(expenseList);
 
-      postexpenses(
+      await postexpenses(
         newexpenseNameController.text,
-        int.tryParse(newexpenseAmountController.text) ?? 0,
+        newexpenseAmountController.text,
         newreceiptNameController.text,
         _pickedImage!.path,
       );
