@@ -90,7 +90,6 @@ Future<void> postexpenses(
   String receipt,
   String filepath,
 ) async {
-  
   print("inside post expenses function");
   print(filepath);
   print(receipt);
@@ -246,12 +245,21 @@ Future<void> addincome(
     if (response.statusCode == 200 || response.statusCode == 201) {
       print("Income added Successfully");
       saveincome(salaryAmount.toString());
+      saveincomedata(salaryType, salaryDate);
     } else {
       print("income not added");
     }
   } catch (e) {
     print("error occured $e");
   }
+}
+Future<void> saveincomedata(String salaryType, String salaryDate)async{
+  final storage = FlutterSecureStorage();
+  final String? user = await storage.read(key: 'username');
+  await storage.write(key: 'salaryType$user', value: salaryType);
+  await storage.write(key: 'salaryDate$user', value: salaryDate);
+  print(salaryType);
+  print(salaryDate);
 }
 
 Future<void> saveincome(String income) async {

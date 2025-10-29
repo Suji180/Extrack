@@ -235,12 +235,68 @@ class _HomepageState extends ConsumerState<Homepage> {
 
       final spendStr = await storage.read(key: "spendbudget");
       final totalBalStr = await storage.read(key: "totalbalance");
-      if (spendStr != null && totalBalStr != null) {
-        print("Retrieved spendbudget and totalbalance from storage:");
-        print("spendbudget: $spendStr, totalbalance: $totalBalStr");
-        spend = double.tryParse(spendStr) ?? 0.0;
-        total = double.tryParse(totalBalStr) ?? 0.0;
+      final String? user = await storage.read(key: 'username');
+      final String? salaryType = await storage.read(key: 'salaryType$user');
+      final String? salaryDate = await storage.read(key: 'salaryDate$user');
+      if (salaryType != null && salaryDate != null) {
+        print("Retrieved salaryType and salaryDate from storage:");
+        print("salaryType: $salaryType, salaryDate: $salaryDate");
+        if (salaryType == "Monthly") {
+          DateTime now = DateTime.now();
+          if (now.day == int.parse(salaryDate)) {
+            total = (total ?? 0) + double.parse(setincome['income']);
+          } else {
+            print("Retrieved spendbudget and totalbalance from storage:");
+            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
+            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+          }
+        }
+        if(salaryType == "Weekly"){
+          DateTime now = DateTime.now();
+          if (now.weekday == 7) {
+            total = (total ?? 0) + double.parse(setincome['income']);
+            spend = 0;
+          } else {
+            print("Retrieved spendbudget and totalbalance from storage:");
+            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
+            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+          }
+        }
+        if(salaryType == "Daily"){
+          DateTime now = DateTime.now();
+          DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+          if(now.isAfter(endOfDay)){
+          total = (total ?? 0) + double.parse(setincome['income']);
+          spend = 0;
+        }
+        else {
+            print("Retrieved spendbudget and totalbalance from storage:");
+            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
+            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+          }
+        }
+        if(salaryType == "Yearly"){
+          DateTime now = DateTime.now();
+          if (now.month == 1 && now.day == 1) {
+            total = (total ?? 0) + double.parse(setincome['income']);
+            spend = 0;
+          } else {
+            print("Retrieved spendbudget and totalbalance from storage:");
+            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
+            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+          }
+        }
       }
+      // if (spendStr != null && totalBalStr != null) {
+      //   print("Retrieved spendbudget and totalbalance from storage:");
+      //   print("spendbudget: $spendStr, totalbalance: $totalBalStr");
+      //   spend = double.tryParse(spendStr) ?? 0.0;
+      //   total = double.tryParse(totalBalStr) ?? 0.0;
+      // }
       setState(() {
         totalBalance = total ?? 0.0;
         spendbudget = spend;
@@ -483,7 +539,8 @@ class _HomepageState extends ConsumerState<Homepage> {
           if (actualData.containsKey("error") &&
               actualData["error"] == "not related to expenses") {
             print("The audio does not relate to expenses.");
-            clear();
+            cancel();
+
             return false;
           } else {
             print("Category: ${actualData["category"]}");
@@ -500,9 +557,13 @@ class _HomepageState extends ConsumerState<Homepage> {
             await saveExpensewithexpiry(updateexpenseList);
             await addui(ref);
             await loadLocalData();
-            await postexpenses(actualData["category"] ?? 'Uncategorized',
-                actualData["amount"] ?? 0, newreceiptNameController.text, '');
-            clear();
+            await postexpenses(
+              actualData["category"] ?? 'Uncategorized',
+              actualData["amount"] ?? 0,
+              newreceiptNameController.text,
+              '',
+            );
+            cancel();
           }
 
           try {
@@ -568,9 +629,9 @@ class _HomepageState extends ConsumerState<Homepage> {
       await postexpenses(
         data != null ? data['category'] : 'Uncategorized',
         data != null ? data['amount'] : 0,
-        newreceiptNameController.text, _pickedImage!.path
+        newreceiptNameController.text,
+        _pickedImage!.path,
       );
-      
     } else {
       final expense = {
         'name': newexpenseNameController.text,
