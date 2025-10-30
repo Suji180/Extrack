@@ -6,7 +6,68 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 //New bracnh created name : frontend
+class DatabaseHelper {
+  static Database? _database;
+  static const String _tablename1 = 'expenses';
+  static const String _tablename2 = 'users';
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
+    return _database!;
+  }
+}
+
+Future<Database> _initDatabase() async {
+  String path = join(await getDatabasesPath(), 'expenses.db');
+  return await openDatabase(
+    path,
+    version: 2,
+    onCreate: _onCreate,
+    onUpgrade: (db, oldVersion, newVersion) async {
+      if (oldVersion < 2) {
+        await db.execute('ALTER TABLE expenses ADD COLUMN date TEXT');
+        print("Database upgraded to version $newVersion");
+      }
+    },
+  );
+}
+
+Future<void> _onCreate(Database db, int version) async {
+  await db.execute('''
+  CREATE TABLE ${DatabaseHelper._tablename1}(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT,
+    amount REAL,
+    receipt TEXT,
+    imagePath TEXT
+  )
+  ''');
+  await db.execute('''
+  CREATE TABLE ${DatabaseHelper._tablename2}(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT
+  )
+  ''');
+}
+
+Future<int> insertuser(Map<String, dynamic> user) async {
+  final db = await DatabaseHelper().database;
+
+  print("Inserting user into local database: $user");
+  return await db.insert(DatabaseHelper._tablename2, user);
+}
+
+Future<int> addExpenses(Map<String, dynamic> expense) async {
+  final db = await DatabaseHelper().database;
+  print("Inserting expense into local database: $expense");
+  return await db.insert(DatabaseHelper._tablename1, expense);
+}
 
 Future<void> postUser(String name, String age) async {
   final url = Uri.parse("http://10.0.2.2:8000/signup");
@@ -35,6 +96,7 @@ Future<void> adduser(String email) async {
       body: jsonEncode({'email': email}),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
+      
       print("sign up Successfully");
     } else {
       print("not signup ");
@@ -43,13 +105,19 @@ Future<void> adduser(String email) async {
     print("error occured $e");
   }
 }
-Future<void> otpverify(String email, String password,int otp,VoidCallback onSuccess) async {
+
+Future<void> otpverify(
+  String email,
+  String password,
+  int otp,
+  VoidCallback onSuccess,
+) async {
   try {
     final url = Uri.parse("http://10.0.2.2:8000/otp");
     final response = await http.post(
       url,
       headers: {'Content-type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password,'otp':otp}),
+      body: jsonEncode({'email': email, 'password': password, 'otp': otp}),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       print("otp verify Successfully");
@@ -74,10 +142,34 @@ Future<void> getuser(String email, String password) async {
       print("sign in Successfully");
       var jsonresponse = json.decode(response.body);
       print(jsonresponse["session_token"]);
+      final jwt = JWT.decode(jsonresponse["session_token"]);
+      print("Decoded JWT payload: ${jwt.payload}");
+      final email = jwt.payload['email'];
+      print("Email from JWT payload: $email");
+      final id = jwt.payload['sub'];
+      insertuser({'username': email});
       print(jsonresponse["username"]);
       await savetoken(jsonresponse["session_token"], jsonresponse["username"]);
     } else {
       print("not signin ");
+    }
+  } catch (e) {
+    print("error occured $e");
+  }
+}
+
+Future<void> resetpassword(String email) async {
+  try {
+    final url = Uri.parse("http://10.0.2.2:8000/forget_password");
+    final response = await http.post(
+      url,
+      headers: {'Content-type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print("reset password link sent Successfully");
+    } else {
+      print("reset password link not sent ");
     }
   } catch (e) {
     print("error occured $e");
@@ -253,7 +345,8 @@ Future<void> addincome(
     print("error occured $e");
   }
 }
-Future<void> saveincomedata(String salaryType, String salaryDate)async{
+
+Future<void> saveincomedata(String salaryType, String salaryDate) async {
   final storage = FlutterSecureStorage();
   final String? user = await storage.read(key: 'username');
   await storage.write(key: 'salaryType$user', value: salaryType);
