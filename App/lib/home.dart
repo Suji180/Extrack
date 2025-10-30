@@ -137,17 +137,20 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
     print(expense);
 
     List<ExpenseItem> todayExpenses = [];
+    
     for (var exp in expense) {
       DateTime expDate = DateTime.parse(exp['date']);
+      print(exp);
       if (expDate.year == today.year &&
           expDate.month == today.month &&
           expDate.day == today.day) {
         todayExpenses.add(
           ExpenseItem(
-            name: exp['name'],
-            amount: exp['amount'],
+            name: (exp['category'] ?? '').toString(),
+            amount: (double.tryParse(exp['amount'].toString()) ?? 0.0)
+                .toString(),
             date: expDate,
-            receiptname: exp['receiptname'],
+            receiptname: (exp['receipt'] ?? '').toString(),
           ),
         );
       }
@@ -249,9 +252,7 @@ class _HomepageState extends ConsumerState<Homepage> {
               : now.subtract(const Duration(days: 30));
           if (now.month != lastUpdate.month || now.year != lastUpdate.year) {
             final gincome = await getincome();
-            total = gincome != null
-                ? (total ?? 0) + double.parse(gincome)
-                : total;
+            total = double.parse(gincome ?? '0.0');
             spend = 0;
             await storage.write(key: "spendbudget", value: "0.0");
             await storage.write(key: "totalbalance", value: total.toString());
@@ -277,9 +278,7 @@ class _HomepageState extends ConsumerState<Homepage> {
 
           if (isSunday && weekPassed) {
             final gincome = await getincome();
-            total = gincome != null
-                ? (total ?? 0) + double.parse(gincome)
-                : total;
+            total = double.parse(gincome ?? '0.0');
             spend = 0;
             await storage.write(key: "spendbudget", value: "0.0");
             await storage.write(key: "totalbalance", value: total.toString());
@@ -334,9 +333,7 @@ class _HomepageState extends ConsumerState<Homepage> {
 
           if (lastUpdate.year != now.year) {
             final gincome = await getincome();
-            total = gincome != null
-                ? (total ?? 0) + double.parse(gincome)
-                : total;
+            total = double.parse(gincome ?? '0.0');
             spend = 0;
             await storage.write(key: "spendbudget", value: "0.0");
             await storage.write(key: "totalbalance", value: total.toString());
@@ -375,7 +372,7 @@ class _HomepageState extends ConsumerState<Homepage> {
     super.initState();
     print("inside init state of homepage");
     loadLocalData();
-    Future.delayed(Duration(milliseconds: 300), () {
+    Future.delayed(Duration(milliseconds: 500), () {
       setState(() {
         delayPassed = true;
       });
@@ -695,16 +692,23 @@ class _HomepageState extends ConsumerState<Homepage> {
       );
     } else {
       final expense = {
-        'name': newexpenseNameController.text,
+        'category': newexpenseNameController.text,
         'amount': newexpenseAmountController.text,
         'date': DateTime.now().toIso8601String(),
-        'receiptname': newreceiptNameController.text,
-        'imagePath': _pickedImage!.path,
+        'receipt': newreceiptNameController.text.isEmpty
+            ? ''
+            : newreceiptNameController.text,
+        'imagePath': _pickedImage?.path ?? '',
       };
+      print("Name: ${newexpenseNameController.text}");
+      print("Amount: ${newexpenseAmountController.text}");
+      print("Receipt: ${newreceiptNameController.text}");
+      print("ImagePath: ${_pickedImage?.path}");
 
       final expenseList = [expense];
 
       await saveExpensewithexpiry(expenseList);
+      await addExpenses(expense);
 
       await postexpenses(
         newexpenseNameController.text,
@@ -712,6 +716,7 @@ class _HomepageState extends ConsumerState<Homepage> {
         newreceiptNameController.text,
         _pickedImage!.path,
       );
+
       await addui(ref);
       await loadLocalData();
     }
