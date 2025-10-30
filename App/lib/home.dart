@@ -137,7 +137,7 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
     print(expense);
 
     List<ExpenseItem> todayExpenses = [];
-    
+
     for (var exp in expense) {
       DateTime expDate = DateTime.parse(exp['date']);
       print(exp);
@@ -670,17 +670,29 @@ class _HomepageState extends ConsumerState<Homepage> {
         newexpenseNameController.text.isEmpty) {
       print("Please fill all fields and select an image");
       final data = await postimageinn8n(_pickedImage!.path);
-      print(data);
+      final storage = FlutterSecureStorage();
+      String? user = await storage.read(key: 'userid');
+      print("user add expense: $user");
+      if (user == null) {
+        print("No user found, so cannot add expense with session token");
+        return;
+      }
       final updateexpense = {
-        'name': data != null ? data['category'] : 'Uncategorized',
+        'id': user,
+        'category': data != null ? data['category'] : 'Uncategorized',
         'amount': data != null ? data['amount'] : 0,
         'date': DateTime.now().toIso8601String(),
-        'receiptname': newreceiptNameController.text,
+        'receipt': newreceiptNameController.text.isEmpty
+            ? ''
+            : newreceiptNameController.text,
         'imagePath': _pickedImage!.path,
       };
+
       final updateexpenseList = [updateexpense];
 
+
       print("updated expense to save:$updateexpenseList");
+      await addExpenses(updateexpense);
       await saveExpensewithexpiry(updateexpenseList);
       await addui(ref);
       await loadLocalData();
@@ -691,7 +703,15 @@ class _HomepageState extends ConsumerState<Homepage> {
         _pickedImage!.path,
       );
     } else {
+      final storage = FlutterSecureStorage();
+      String? user = await storage.read(key: 'userid');
+      print("user add expense: $user");
+      if (user == null) {
+        print("No user found, so cannot add expense with session token");
+        return;
+      }
       final expense = {
+        'id': user,
         'category': newexpenseNameController.text,
         'amount': newexpenseAmountController.text,
         'date': DateTime.now().toIso8601String(),
@@ -719,6 +739,7 @@ class _HomepageState extends ConsumerState<Homepage> {
 
       await addui(ref);
       await loadLocalData();
+      cancel();
     }
     clear();
     // close the dialog

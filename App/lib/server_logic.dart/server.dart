@@ -41,16 +41,17 @@ Future<Database> _initDatabase() async {
 Future<void> _onCreate(Database db, int version) async {
   await db.execute('''
   CREATE TABLE ${DatabaseHelper._tablename1}(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id numeric ,
     category TEXT,
     amount REAL,
+    date TEXT,
     receipt TEXT,
     imagePath TEXT
   )
   ''');
   await db.execute('''
   CREATE TABLE ${DatabaseHelper._tablename2}(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER ,
     username TEXT
   )
   ''');
@@ -58,8 +59,12 @@ Future<void> _onCreate(Database db, int version) async {
 
 Future<int> insertuser(Map<String, dynamic> user) async {
   final db = await DatabaseHelper().database;
+  final storage = FlutterSecureStorage();
 
   print("Inserting user into local database: $user");
+  await storage.write(key: 'userid', value: user['id'].toString());
+  print("User ID saved in secure storage: ${user['id']}");
+
   return await db.insert(DatabaseHelper._tablename2, user);
 }
 
@@ -147,7 +152,7 @@ Future<void> getuser(String email, String password) async {
       final email = jwt.payload['email'];
       print("Email from JWT payload: $email");
       final id = jwt.payload['sub'];
-      insertuser({'username': email});
+      insertuser({'id': id , 'username': email});
       print(jsonresponse["username"]);
       await savetoken(jsonresponse["session_token"], jsonresponse["username"]);
     } else {
