@@ -29,108 +29,11 @@ class Homepage extends ConsumerStatefulWidget {
   ConsumerState<Homepage> createState() => _HomepageState();
 }
 
-Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
-  final storage = FlutterSecureStorage();
-  String? user = await storage.read(key: 'username');
-  print("user saveExpensewithexpiry: $user");
-  if (user == null) {
-    print("No user found, so cannot save expenses with session token");
-    return;
-  }
-
-  final now = DateTime.now();
-  final expiry = now.add(const Duration(days: 7));
-
-  final existingData = await storage.read(key: 'expense_with_expiry_$user');
-  List<Map<String, dynamic>> expenseList = [];
-
-  if (existingData != null) {
-    final stored = jsonDecode(existingData);
-    final expiryDate = DateTime.parse(stored['expiry']);
-    if (now.isBefore(expiryDate)) {
-      if (stored['expense'] is List) {
-        expenseList = List<Map<String, dynamic>>.from(stored['expense']);
-      } else {
-        print("Old expense data was a Map, resetting to empty list");
-      }
-    } else {
-      print("Existing data is expired");
-    }
-
-    expenseList.addAll(expenses);
-  } else {
-    expenseList.addAll(expenses);
-  }
-  print("testing saved expense list:");
-  print(expenseList);
-
-  final dataToStore = {
-    'expense': expenseList,
-    'expiry': expiry.toIso8601String(),
-  };
-  await storage.write(
-    key: 'expense_with_expiry_$user',
-    value: json.encode(dataToStore),
-  );
-  print(dataToStore);
-}
-
-// Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
-//   const storage = FlutterSecureStorage();
-//   String? user = await storage.read(key: 'username');
-//   print("user getExpensewithexpiry: $user");
-//   if (user == null) {
-//     print("No user found, so cannot get expensise with session token");
-//     return null;
-//   }
-//   final data = await storage.read(key: 'expense_with_expiry_$user');
-//   print("data retrieved from storage: $data");
-//   if (data == null) {
-//     return null;
-//   }
-//   final stored = jsonDecode(data);
-//   final expiry = DateTime.parse(stored['expiry']);
-
-//   if (DateTime.now().isAfter(expiry)) {
-//     await storage.delete(key: 'expense_with_expiry_$user');
-//     return null;
-//   }
-//   print("retrieved expense with expiry:");
-//   print(stored['expense']);
-//   final List<Map<String, dynamic>> expense_list =
-//       List<Map<String, dynamic>>.from(stored['expense']);
-//   return expense_list;
-// }
-
 Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
   final storage = FlutterSecureStorage();
   final now = DateTime.now();
   print("addui now: $now");
   final today = DateTime(now.year, now.month, now.day);
-  // String? user = await storage.read(key: 'username');
-  // print("user addui: $user");
-  // if (user == null) return null;
-  // final now = DateTime.now();
-  // final today = DateTime(now.year, now.month, now.day);
-  // String? lastdataload = await storage.read(key: 'last_data_load_$user');
-  // if (lastdataload != null) {
-  //   final lastLoadDate = DateTime.tryParse(lastdataload);
-  //   if (lastLoadDate != null && lastLoadDate.isBefore(today)) {
-  //     print("Last data load was before today, clearing expense data provider");
-  //     ref.read(expenseDataProvider.notifier).state = [];
-  //     await storage.write(
-  //       key: 'last_data_load_$user',
-  //       value: today.toIso8601String(),
-  //     );
-
-  //     return [];
-  //   }
-  // } else {
-  //   await storage.write(
-  //     key: 'last_data_load_$user',
-  //     value: today.toIso8601String(),
-  //   );
-  // }
   final expense = await  getExpenses();
   if (expense != null) {
     print("Expense retrieved from local cache:");
@@ -612,7 +515,7 @@ class _HomepageState extends ConsumerState<Homepage> {
             };
             final updateexpenseList = [updateexpense];
             print("updated expense to save:$updateexpenseList");
-            await saveExpensewithexpiry(updateexpenseList);
+            // await saveExpensewithexpiry(updateexpenseList);
             await addui(ref);
             await loadLocalData();
             await postexpenses(
@@ -648,24 +551,6 @@ class _HomepageState extends ConsumerState<Homepage> {
 
   void add() async {
     print("it works");
-
-    // ref
-    //     .read(expenseDataProvider.notifier)
-    //     .addExpense(
-    //       ExpenseItem(
-    //         name: newexpenseNameController.text,
-    //         amount: newexpenseAmountController.text,
-    //         date: DateTime.now(),
-    //         receiptname: newreceiptNameController.text,
-    //       ),
-    //     );
-    // if(!path==null)
-    // {
-    //   print("image selected");
-    // }
-    // else{
-    //   print("no image selected");
-    // }
     if (newexpenseAmountController.text.isEmpty ||
         newexpenseNameController.text.isEmpty) {
       print("Please fill all fields and select an image");
@@ -693,7 +578,7 @@ class _HomepageState extends ConsumerState<Homepage> {
 
       print("updated expense to save:$updateexpenseList");
       await addExpenses(updateexpense);
-      await saveExpensewithexpiry(updateexpenseList);
+      // await saveExpensewithexpiry(updateexpenseList);
       await addui(ref);
       await loadLocalData();
       await postexpenses(
@@ -727,7 +612,7 @@ class _HomepageState extends ConsumerState<Homepage> {
 
       final expenseList = [expense];
 
-      await saveExpensewithexpiry(expenseList);
+      // await saveExpensewithexpiry(expenseList);
       await addExpenses(expense);
 
       await postexpenses(
