@@ -96,7 +96,7 @@ Future<void> adduser(String email) async {
       body: jsonEncode({'email': email}),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
-      insertuser({'user': email});
+      
       print("sign up Successfully");
     } else {
       print("not signup ");
@@ -144,6 +144,10 @@ Future<void> getuser(String email, String password) async {
       print(jsonresponse["session_token"]);
       final jwt = JWT.decode(jsonresponse["session_token"]);
       print("Decoded JWT payload: ${jwt.payload}");
+      final email = jwt.payload['email'];
+      print("Email from JWT payload: $email");
+      final id = jwt.payload['sub'];
+      insertuser({'username': email});
       print(jsonresponse["username"]);
       await savetoken(jsonresponse["session_token"], jsonresponse["username"]);
     } else {
