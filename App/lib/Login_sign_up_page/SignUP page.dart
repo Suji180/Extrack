@@ -2,8 +2,10 @@
 import 'package:extrack/Login_sign_up_page/googleauth.dart';
 import 'package:extrack/Login_sign_up_page/loginpage.dart';
 import 'package:extrack/home.dart';
+import 'package:extrack/main.dart';
 import 'package:flutter/material.dart';
 import 'package:extrack/server_logic.dart/server.dart';
+import 'package:extrack/Login_sign_up_page/Secondpage.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -40,11 +42,11 @@ class SignUpPageState extends State<SignUpPage> {
       ),
       body: Container(
         decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/bg.jpg'),
-            fit: BoxFit.cover,
-          ),
-        ),
+          //  image: DecorationImage(
+          //    image: AssetImage('assets/bg.jpg'),
+          //    fit: BoxFit.cover,
+          // ),
+         ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -184,6 +186,7 @@ class SignUpPageState extends State<SignUpPage> {
                       backgroundColor: const Color.fromARGB(255, 57, 116, 219),
                     ),
                     onPressed: () async {
+                      print("button clicked");
                       if (_emailController.text.isEmpty ||
                           _passwordController.text.isEmpty ||
                           _confirmPasswordController.text.isEmpty) {
@@ -202,14 +205,19 @@ class SignUpPageState extends State<SignUpPage> {
 
                       try {
                         await adduser(
-                          _emailController.text.trim(),
-                          _passwordController.text.trim(),
+                          _emailController.text.trim()
                         );
 
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => SecondPage()),
+                          MaterialPageRoute(builder: (context) => SecondPage(
+                            email: _emailController.text.trim(),
+                            password: _passwordController.text.trim(),
+                            nextPage: MainApp(),
+                          )),
+
                         );
+                        print("navigati on sent");
                       } catch (e) {
                         print("Error: $e");
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -217,8 +225,7 @@ class SignUpPageState extends State<SignUpPage> {
                         );
                       }
                     },
-                    child: const Text(
-                      'Continue',
+                    child: const Text('Continue',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -262,7 +269,7 @@ class SignUpPageState extends State<SignUpPage> {
                         width: 40,
                         height: 40,
                       ),
-                    onPressed: googleauth().handleSignIn,
+                    onPressed: google_auth_backend().handleSignIn,
                     iconSize: 40,
                   ),
                 ],
@@ -286,7 +293,11 @@ class SignUpPageState extends State<SignUpPage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const SecondPage()),
+                        MaterialPageRoute(builder: (context) => const SecondPage(
+                          email: '',
+                          password: '',
+                          nextPage: MainApp(),
+                        )),
                       );
                     },
                     child: const Text(

@@ -1,43 +1,35 @@
-from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter, UploadFile, File
+from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter, UploadFile, File, Form, Header
 from pydantic import BaseModel
-import psycopg
+import asyncpg
 import os
-from basemodel import AddExpense
-from db import db_connection
+from db import get_connection
+from dashboard import get_user_id
 
 load = APIRouter()
-
-@load.post("/add")
-async def add_expense(add: AddExpense):
-    conn = db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("INSERT INTO expenses (category, amount) VALUES (%s, %s)", (add.category, add.amount))
-        conn.commit()
-        return {"Message": "Expense added successfully"}
-
-    except psycopg.Error as error:
-        raise HTTPException(status_code = 500, detail = f"MySQL Error : {error}")
-
-    finally:
-        cursor.close()
-        conn.close()
 
 directory = "/home/saravanesh/receipts"
 if not os.path.exists(directory):
     os.makedirs(directory)
 
-@load.post("/image")
-async def upload(file: UploadFile = File(...)):
+@load.post("/add")
+async def add_expense(category: str = Form(...), amount: int = Form(...), receipt: str = Form(...),
+                    conn = Depends(get_connection), image: UploadFile = File(...), auth = Header(None, alias = "Authorization")):
+    if not auth or not auth.startswith("Bearer "):
+        raise HTTPException(status_code= 401, detail= "The Auth jwt token must be start with the format 'Bearer token'")
+    
+    jwt_token = auth.split(" ")[1]
+    uid = get_user_id(jwt_token)
+
     try:
-        file_location = os.path.join(directory, file.filename)
+        await conn.execute("INSERT INTO expenses (id, category, amount, receipt) VALUES ($1, $2, $3, $4)", uid, category, amount, receipt)
+
+        file_location = os.path.join(directory, image.filename)
         with open(file_location, "wb") as buffer:
-            content = await file.read()
+            content = await image.read()
             buffer.write(content)
-        return {"Message": "Receipt uploaded"}
 
-    except Exception as e:
-        return HTTPException(status_code = 500, detail = f"The error is {e}")
+        return {"Message": "Expense added successfully"}
 
-    finally:
-        pass
+    except asyncpg.PostgresError as error:
+        raise HTTPException(status_code = 500, detail = f"MySQL Error : {error}")
+
