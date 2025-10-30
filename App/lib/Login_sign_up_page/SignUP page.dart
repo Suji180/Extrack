@@ -214,6 +214,7 @@ class SignUpPageState extends State<SignUpPage> {
                             email: _emailController.text.trim(),
                             password: _passwordController.text.trim(),
                             nextPage: MainApp(),
+                            isPasswordReset: false,
                           )),
 
                         );
@@ -297,6 +298,7 @@ class SignUpPageState extends State<SignUpPage> {
                           email: '',
                           password: '',
                           nextPage: MainApp(),
+                          isPasswordReset: false,
                         )),
                       );
                     },
