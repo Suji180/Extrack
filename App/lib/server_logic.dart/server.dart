@@ -11,6 +11,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+
 //New bracnh created name : frontend
 class DatabaseHelper {
   static Database? _database;
@@ -74,6 +75,15 @@ Future<int> addExpenses(Map<String, dynamic> expense) async {
   return await db.insert(DatabaseHelper._tablename1, expense);
 }
 
+Future<List<Map<String, dynamic>>> getExpenses() async {
+  final db = await DatabaseHelper().database;
+  final List<Map<String, dynamic>> result = await db.query(
+    DatabaseHelper._tablename1,
+  );
+  print("Fetched expenses from local database: $result");
+  return result;
+}
+
 Future<void> postUser(String name, String age) async {
   final url = Uri.parse("http://10.0.2.2:8000/signup");
   final response = await http.post(
@@ -101,7 +111,6 @@ Future<void> adduser(String email) async {
       body: jsonEncode({'email': email}),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
-      
       print("sign up Successfully");
     } else {
       print("not signup ");
@@ -152,7 +161,7 @@ Future<void> getuser(String email, String password) async {
       final email = jwt.payload['email'];
       print("Email from JWT payload: $email");
       final id = jwt.payload['sub'];
-      insertuser({'id': id , 'username': email});
+      insertuser({'id': id, 'username': email});
       print(jsonresponse["username"]);
       await savetoken(jsonresponse["session_token"], jsonresponse["username"]);
     } else {

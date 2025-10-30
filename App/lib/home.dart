@@ -75,32 +75,32 @@ Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
   print(dataToStore);
 }
 
-Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
-  const storage = FlutterSecureStorage();
-  String? user = await storage.read(key: 'username');
-  print("user getExpensewithexpiry: $user");
-  if (user == null) {
-    print("No user found, so cannot get expensise with session token");
-    return null;
-  }
-  final data = await storage.read(key: 'expense_with_expiry_$user');
-  print("data retrieved from storage: $data");
-  if (data == null) {
-    return null;
-  }
-  final stored = jsonDecode(data);
-  final expiry = DateTime.parse(stored['expiry']);
+// Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
+//   const storage = FlutterSecureStorage();
+//   String? user = await storage.read(key: 'username');
+//   print("user getExpensewithexpiry: $user");
+//   if (user == null) {
+//     print("No user found, so cannot get expensise with session token");
+//     return null;
+//   }
+//   final data = await storage.read(key: 'expense_with_expiry_$user');
+//   print("data retrieved from storage: $data");
+//   if (data == null) {
+//     return null;
+//   }
+//   final stored = jsonDecode(data);
+//   final expiry = DateTime.parse(stored['expiry']);
 
-  if (DateTime.now().isAfter(expiry)) {
-    await storage.delete(key: 'expense_with_expiry_$user');
-    return null;
-  }
-  print("retrieved expense with expiry:");
-  print(stored['expense']);
-  final List<Map<String, dynamic>> expense_list =
-      List<Map<String, dynamic>>.from(stored['expense']);
-  return expense_list;
-}
+//   if (DateTime.now().isAfter(expiry)) {
+//     await storage.delete(key: 'expense_with_expiry_$user');
+//     return null;
+//   }
+//   print("retrieved expense with expiry:");
+//   print(stored['expense']);
+//   final List<Map<String, dynamic>> expense_list =
+//       List<Map<String, dynamic>>.from(stored['expense']);
+//   return expense_list;
+// }
 
 Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
   final storage = FlutterSecureStorage();
@@ -131,7 +131,7 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
   //     value: today.toIso8601String(),
   //   );
   // }
-  final expense = await getExpensewithexpiry();
+  final expense = await  getExpenses();
   if (expense != null) {
     print("Expense retrieved from local cache:");
     print(expense);
@@ -167,7 +167,7 @@ Future<Map<String, dynamic>?> localcached() async {
   final income = await getincome();
   if (income != null) {
     print("Income from local cache: $income");
-    final callincome = await getExpensewithexpiry();
+    final callincome = await  getExpenses();
     double parsedAmount = 0.0;
     if (callincome != null) {
       for (var inc in callincome) {
