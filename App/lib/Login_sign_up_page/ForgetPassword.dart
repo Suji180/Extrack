@@ -78,7 +78,7 @@ class Resetpass extends StatefulWidget {
                      minimumSize: WidgetStateProperty.all(Size(50, 40)),
                    ),
 
-                   onPressed: () {
+                   onPressed: () async{
                      if (!_mailController.text.contains('@gmail.com') ||
                          _mailController.text.isEmpty) {
                        setState(() {
@@ -89,8 +89,21 @@ class Resetpass extends StatefulWidget {
                        _invalidMail=false;
                      }
                      if (!_invalidMail) {
+                     //   try{
+                     //     await adduser(_mailController.text);
+                     //   }
+                     //   catch(e)
+                     // {
+                     //   print(e);
+                     // }
                        Navigator.push(context,
-                           MaterialPageRoute(builder: (context) => SecondPage(email: _mailController.text.trim(),nextPage:const confirmPass())));
+                           MaterialPageRoute(builder: (context) => SecondPage(
+                               email: _mailController.text.trim(),
+                               nextPage:Container(),
+                               isPasswordReset:true,
+                           )
+                           )
+                       );
                      }
                    },
                    child: Text('Next',style: TextStyle(color: Colors.white),)

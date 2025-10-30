@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../server_logic.dart/server.dart';
+import 'package:extrack/Login_sign_up_page/PasswordConfirm.dart';
 
 class SecondPage extends StatefulWidget {
   final String email;
   final String? password;
   final Widget nextPage;
-  const SecondPage({super.key, required this.email, this.password,required this.nextPage});
+  final bool isPasswordReset;
+  const SecondPage({super.key, required this.email, this.password,required this.nextPage,required this.isPasswordReset});
   @override
   State<SecondPage> createState() => _SecondPageState();
 }
@@ -48,10 +50,21 @@ class _SecondPageState extends State<SecondPage> {
 
   void _onConfirm() {
     if (_isOtpComplete) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => widget.nextPage,),
-      );
+      String otp= _controllers.map((c)=>c.text).join();
+      if(widget.isPasswordReset)
+        {
+           Navigator.pushReplacement(context, MaterialPageRoute(builder:(context)=>ConfirmPass(
+             email:widget.email,
+             otp:int.parse(otp),
+           ))
+           );
+        }
+      else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => widget.nextPage,),
+        );
+      }
     }
   }
 
@@ -167,12 +180,13 @@ class _SecondPageState extends State<SecondPage> {
                       ),
                     ),
 
-                    onPressed: _isOtpComplete
+                    onPressed:_isOtpComplete
                         ? () {
                             String otp = _controllers.map((c) => c.text).join();
+                            String? PassForVerify =widget.isPasswordReset? ' ':widget.password;
                             otpverify(
                               widget.email,
-                              widget.password ?? ' ',
+                              PassForVerify ?? ' ',
                               int.parse(otp),
                               _onConfirm,
                             );
