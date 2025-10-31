@@ -11,6 +11,10 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
+late StreamSubscription subscription;
 
 //New bracnh created name : frontend
 class DatabaseHelper {
@@ -82,6 +86,20 @@ Future<List<Map<String, dynamic>>> getExpenses() async {
   );
   print("Fetched expenses from local database: $result");
   return result;
+}
+void connectionlistener() async{
+  final connectivity = Connectivity();
+  print("Setting up connectivity listener...");
+
+  subscription = connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {
+    final result = results.first;
+    if (result == ConnectivityResult.wifi || result == ConnectivityResult.mobile || result == ConnectivityResult.ethernet) {
+      print("Device is online. Syncing local data with server...");
+     
+    } else {
+      print("Device is offline.");
+    }
+  });
 }
 
 Future<void> postUser(String name, String age) async {
