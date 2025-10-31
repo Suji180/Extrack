@@ -21,6 +21,7 @@ class DatabaseHelper {
   static Database? _database;
   static const String _tablename1 = 'expenses';
   static const String _tablename2 = 'users';
+  static const String _tablename3 = 'income';
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
@@ -57,10 +58,23 @@ Future<void> _onCreate(Database db, int version) async {
   ''');
   await db.execute('''
   CREATE TABLE ${DatabaseHelper._tablename2}(
+    salaryType TEXT,
+    salaryAmount Interger,
+    salaryDate TEXT
+    )
+  ''');
+  await db.execute('''
+  CREATE TABLE ${DatabaseHelper._tablename3}(
     id INTEGER ,
     username TEXT
   )
   ''');
+}
+
+Future<int> saveIncome(Map<String, dynamic> income) async {
+  final db = await DatabaseHelper().database;
+  print("inserting income into local database: $income");
+  return await db.insert(DatabaseHelper._tablename3, income);
 }
 
 Future<int> insertuser(Map<String, dynamic> user) async {
@@ -108,8 +122,22 @@ void connectionlistener() async {
   });
 }
 
-Future<void> postlocaldata() async {
+Future<List<Map<String, dynamic>>> formattedExpenses() async {
   final expenses = await getExpenses();
+  List<Map<String, dynamic>> formattedExpenses = expenses.map((expense) {
+    return {
+      'id': BigInt.parse(expense['id'].toString()),
+      'category': expense['category'],
+      'amount': expense['amount'],
+    };
+  }).toList();
+  return formattedExpenses;
+}
+
+Future<void> postlocaldata() async {
+  final expense = await formattedExpenses();
+  print("Posting local data to server: $expense");
+
   final String? token = await gettoken();
   if (token == null) {
     print("No valid token found. Cannot sync data.");
@@ -117,23 +145,18 @@ Future<void> postlocaldata() async {
   }
   try {
     final url = Uri.parse("http://10.0.2.2:8000/");
-    for (var expense in expenses) {
-      final response = await http.post(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'category': expense['category'],
-          'amount': expense['amount'],
-        }),
-      );
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print("Expense synced successfully: ${expense}");
-      } else {
-        print("Failed to sync expense: ${expense}");
-      }
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({expense}),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print("Expense synced successfully: ${expense}");
+    } else {
+      print("Failed to sync expense: ${expense}");
     }
   } catch (e) {
     print("Error syncing local data: $e");
