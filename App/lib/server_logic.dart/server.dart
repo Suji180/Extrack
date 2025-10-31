@@ -116,25 +116,23 @@ Future<void> postlocaldata() async {
     return;
   }
   try {
-    var url = Uri.parse("http://10.0.2.2:8000/");
-    var request = http.MultipartRequest('POST', url);
-    request.headers.addAll({
-      'Content-type': 'application/json',
-      'Authorization': 'Bearer $token',
-    });
+    final url = Uri.parse("http://10.0.2.2:8000/");
     for (var expense in expenses) {
-      request.fields['local_uiid'] = expense['id'].toString();
-      request.fields['category'] = expense['category'];
-      request.fields['amount'] = expense['amount'].toString();
-      request.fields['receipt'] = expense['receipt'];
-      request.files.add(
-        await http.MultipartFile.fromPath('image', expense['imagePath']),
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'category': expense['category'],
+          'amount': expense['amount'],
+        }),
       );
-      var response = await request.send();
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print("Expense synced successfully: $expense");
+        print("Expense synced successfully: ${expense}");
       } else {
-        print("Failed to sync expense: $expense");
+        print("Failed to sync expense: ${expense}");
       }
     }
   } catch (e) {
