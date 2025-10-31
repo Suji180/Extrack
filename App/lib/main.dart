@@ -5,6 +5,7 @@ import 'package:extrack/server_logic.dart/server.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  connectionlistener();
 
   final dbHelper = DatabaseHelper();
   final db = await dbHelper.database;

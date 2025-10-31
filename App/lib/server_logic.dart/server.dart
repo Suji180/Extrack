@@ -11,11 +11,17 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
+late StreamSubscription subscription;
+
 //New bracnh created name : frontend
 class DatabaseHelper {
   static Database? _database;
   static const String _tablename1 = 'expenses';
   static const String _tablename2 = 'users';
+  static const String _tablename3 = 'income';
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
@@ -41,25 +47,44 @@ Future<Database> _initDatabase() async {
 Future<void> _onCreate(Database db, int version) async {
   await db.execute('''
   CREATE TABLE ${DatabaseHelper._tablename1}(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER ,
     category TEXT,
-    amount REAL,
+    amount Interger,
+    date TEXT,
     receipt TEXT,
-    imagePath TEXT
+    imagePath TEXT,
+    status TEXT DEFAULT 'pending' 
   )
   ''');
   await db.execute('''
   CREATE TABLE ${DatabaseHelper._tablename2}(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    salaryType TEXT,
+    salaryAmount Interger,
+    salaryDate TEXT
+    )
+  ''');
+  await db.execute('''
+  CREATE TABLE ${DatabaseHelper._tablename3}(
+    id INTEGER ,
     username TEXT
   )
   ''');
 }
 
+Future<int> saveIncome(Map<String, dynamic> income) async {
+  final db = await DatabaseHelper().database;
+  print("inserting income into local database: $income");
+  return await db.insert(DatabaseHelper._tablename3, income);
+}
+
 Future<int> insertuser(Map<String, dynamic> user) async {
   final db = await DatabaseHelper().database;
+  final storage = FlutterSecureStorage();
 
   print("Inserting user into local database: $user");
+  await storage.write(key: 'userid', value: user['id'].toString());
+  print("User ID saved in secure storage: ${user['id']}");
+
   return await db.insert(DatabaseHelper._tablename2, user);
 }
 
@@ -67,6 +92,75 @@ Future<int> addExpenses(Map<String, dynamic> expense) async {
   final db = await DatabaseHelper().database;
   print("Inserting expense into local database: $expense");
   return await db.insert(DatabaseHelper._tablename1, expense);
+}
+
+Future<List<Map<String, dynamic>>> getExpenses() async {
+  final db = await DatabaseHelper().database;
+  final List<Map<String, dynamic>> result = await db.query(
+    DatabaseHelper._tablename1,
+  );
+  print("Fetched expenses from local database: $result");
+  return result;
+}
+
+void connectionlistener() async {
+  final connectivity = Connectivity();
+  print("Setting up connectivity listener...");
+
+  subscription = connectivity.onConnectivityChanged.listen((
+    List<ConnectivityResult> results,
+  ) {
+    final result = results.first;
+    if (result == ConnectivityResult.wifi ||
+        result == ConnectivityResult.mobile ||
+        result == ConnectivityResult.ethernet) {
+      print("Device is online. Syncing local data with server...");
+      postlocaldata();
+    } else {
+      print("Device is offline.");
+    }
+  });
+}
+
+Future<List<Map<String, dynamic>>> formattedExpenses() async {
+  final expenses = await getExpenses();
+  List<Map<String, dynamic>> formattedExpenses = expenses.map((expense) {
+    return {
+      'id': BigInt.parse(expense['id'].toString()),
+      'category': expense['category'],
+      'amount': expense['amount'],
+    };
+  }).toList();
+  return formattedExpenses;
+}
+
+Future<void> postlocaldata() async {
+  final expense = await formattedExpenses();
+  print("Posting local data to server: $expense");
+
+  final String? token = await gettoken();
+  if (token == null) {
+    print("No valid token found. Cannot sync data.");
+    return;
+  }
+  try {
+    final url = Uri.parse("http://10.0.2.2:8000/");
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({expense}),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print("Expense synced successfully: ${expense}");
+    } else {
+      print("Failed to sync expense: ${expense}");
+    }
+  } catch (e) {
+    print("Error syncing local data: $e");
+  }
 }
 
 Future<void> postUser(String name, String age) async {
@@ -96,7 +190,6 @@ Future<void> adduser(String email) async {
       body: jsonEncode({'email': email}),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
-      
       print("sign up Successfully");
     } else {
       print("not signup ");
@@ -147,7 +240,7 @@ Future<void> getuser(String email, String password) async {
       final email = jwt.payload['email'];
       print("Email from JWT payload: $email");
       final id = jwt.payload['sub'];
-      insertuser({'username': email});
+      insertuser({'id': id, 'username': email});
       print(jsonresponse["username"]);
       await savetoken(jsonresponse["session_token"], jsonresponse["username"]);
     } else {

@@ -122,6 +122,11 @@ class _SalaryState extends State<Salary> {
 
                 salaryData.date ?? '',
               );
+              saveIncome({
+                'salaryType': salaryData.salaryType ?? '',
+                'salaryAmount': salaryData.Amount ?? 0,
+                'salaryDate': salaryData.date ?? '',
+              });
               localcached();
               
 
