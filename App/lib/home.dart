@@ -34,7 +34,7 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
   final now = DateTime.now();
   print("addui now: $now");
   final today = DateTime(now.year, now.month, now.day);
-  final expense = await  getExpenses();
+  final expense = await getExpenses();
   if (expense != null) {
     print("Expense retrieved from local cache:");
     print(expense);
@@ -70,7 +70,7 @@ Future<Map<String, dynamic>?> localcached() async {
   final income = await getincome();
   if (income != null) {
     print("Income from local cache: $income");
-    final callincome = await  getExpenses();
+    final callincome = await getExpenses();
     double parsedAmount = 0.0;
     if (callincome != null) {
       for (var inc in callincome) {
@@ -103,6 +103,7 @@ class _HomepageState extends ConsumerState<Homepage> {
       TextEditingController();
   final TextEditingController newreceiptNameController =
       TextEditingController();
+  bool isLoading = false;
 
   bool? isuiupdated;
   double spendbudget = double.parse((0.00).toStringAsFixed(2));
@@ -550,91 +551,84 @@ class _HomepageState extends ConsumerState<Homepage> {
   }
 
   void add() async {
-    print("it works");
-    if (newexpenseAmountController.text.isEmpty ||
-        newexpenseNameController.text.isEmpty) {
-      print("Please fill all fields and select an image");
-      final data = await postimageinn8n(_pickedImage!.path);
-      final storage = FlutterSecureStorage();
-      String? user = await storage.read(key: 'userid');
-      print("user add expense: $user");
-      if (user == null) {
-        print("No user found, so cannot add expense with session token");
-        return;
-      }
-      final updateexpense = {
-        'id': user,
-        'category': data != null ? data['category'] : 'Uncategorized',
-        'amount': data != null ? data['amount'] : 0,
-        'date': DateTime.now().toIso8601String(),
-        'receipt': newreceiptNameController.text.isEmpty
-            ? ''
-            : newreceiptNameController.text,
-        'imagePath': _pickedImage!.path,
-      };
-
-      final updateexpenseList = [updateexpense];
-
-
-      print("updated expense to save:$updateexpenseList");
-      await addExpenses(updateexpense);
-      // await saveExpensewithexpiry(updateexpenseList);
-      await addui(ref);
-      await loadLocalData();
-      await postexpenses(
-        data != null ? data['category'] : 'Uncategorized',
-        data != null ? data['amount'] : 0,
-        newreceiptNameController.text,
-        _pickedImage!.path,
-      );
-    } else {
-      final storage = FlutterSecureStorage();
-      String? user = await storage.read(key: 'userid');
-      print("user add expense: $user");
-      if (user == null) {
-        print("No user found, so cannot add expense with session token");
-        return;
-      }
-      final expense = {
-        'id': user,
-        'category': newexpenseNameController.text,
-        'amount': newexpenseAmountController.text,
-        'date': DateTime.now().toIso8601String(),
-        'receipt': newreceiptNameController.text.isEmpty
-            ? ''
-            : newreceiptNameController.text,
-        'imagePath': _pickedImage?.path ?? '',
-      };
-      print("Name: ${newexpenseNameController.text}");
-      print("Amount: ${newexpenseAmountController.text}");
-      print("Receipt: ${newreceiptNameController.text}");
-      print("ImagePath: ${_pickedImage?.path}");
-
-      final expenseList = [expense];
-
-      // await saveExpensewithexpiry(expenseList);
-      await addExpenses(expense);
-
-      await postexpenses(
-        newexpenseNameController.text,
-        newexpenseAmountController.text,
-        newreceiptNameController.text,
-        _pickedImage!.path,
-      );
-
-      await addui(ref);
-      await loadLocalData();
-      cancel();
-    }
-    clear();
-    // close the dialog
-
     Navigator.of(context).pop();
+    print("it works");
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      if (newexpenseAmountController.text.isEmpty ||
+          newexpenseNameController.text.isEmpty) {
+        print("Please fill all fields and select an image");
+        final data = await postimageinn8n(_pickedImage!.path);
+        final storage = FlutterSecureStorage();
+        String? user = await storage.read(key: 'userid');
+        print("user add expense: $user");
+        if (user == null) {
+          print("No user found, so cannot add expense with session token");
+          return;
+        }
+        final updateexpense = {
+          'id': user,
+          'category': data != null ? data['category'] : 'Uncategorized',
+          'amount': data != null ? data['amount'] : 0,
+          'date': DateTime.now().toIso8601String(),
+          'receipt': newreceiptNameController.text.isEmpty
+              ? ''
+              : newreceiptNameController.text,
+          'imagePath': _pickedImage!.path,
+        };
+        await addExpenses(updateexpense);
+        await addui(ref);
+        await loadLocalData();
+        await postexpenses(
+          data != null ? data['category'] : 'Uncategorized',
+          data != null ? data['amount'] : 0,
+          newreceiptNameController.text,
+          _pickedImage!.path,
+        );
+      } else if (!newexpenseAmountController.text.isEmpty &&
+          !newexpenseNameController.text.isEmpty) {
+        final storage = FlutterSecureStorage();
+        String? user = await storage.read(key: 'userid');
+        if (user == null) return;
+
+        final expense = {
+          'id': user,
+          'category': newexpenseNameController.text,
+          'amount': newexpenseAmountController.text,
+          'date': DateTime.now().toIso8601String(),
+          'receipt': newreceiptNameController.text,
+          'imagePath': _pickedImage?.path ?? '',
+        };
+
+        await addExpenses(expense);
+
+        if (!mounted) return;
+        await addui(ref);
+        await loadLocalData();
+
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        cancel();
+
+        clear();
+      }
+    } catch (e) {
+      print("Error adding expense: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   void cancel() {
     print("cancelled");
-    Navigator.of(context).pop();
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
     clear();
   }
 
