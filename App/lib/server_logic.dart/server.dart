@@ -46,12 +46,13 @@ Future<Database> _initDatabase() async {
 Future<void> _onCreate(Database db, int version) async {
   await db.execute('''
   CREATE TABLE ${DatabaseHelper._tablename1}(
-    id numeric ,
+    id Integer ,
     category TEXT,
     amount REAL,
     date TEXT,
     receipt TEXT,
-    imagePath TEXT
+    imagePath TEXT,
+    status TEXT DEFAULT 'pending' 
   )
   ''');
   await db.execute('''
@@ -87,19 +88,58 @@ Future<List<Map<String, dynamic>>> getExpenses() async {
   print("Fetched expenses from local database: $result");
   return result;
 }
-void connectionlistener() async{
+
+void connectionlistener() async {
   final connectivity = Connectivity();
   print("Setting up connectivity listener...");
 
-  subscription = connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {
+  subscription = connectivity.onConnectivityChanged.listen((
+    List<ConnectivityResult> results,
+  ) {
     final result = results.first;
-    if (result == ConnectivityResult.wifi || result == ConnectivityResult.mobile || result == ConnectivityResult.ethernet) {
+    if (result == ConnectivityResult.wifi ||
+        result == ConnectivityResult.mobile ||
+        result == ConnectivityResult.ethernet) {
       print("Device is online. Syncing local data with server...");
-     
+      postlocaldata();
     } else {
       print("Device is offline.");
     }
   });
+}
+
+Future<void> postlocaldata() async {
+  final expenses = await getExpenses();
+  final String? token = await gettoken();
+  if (token == null) {
+    print("No valid token found. Cannot sync data.");
+    return;
+  }
+  try {
+    var url = Uri.parse("http://10.0.2.2:8000/");
+    var request = http.MultipartRequest('POST', url);
+    request.headers.addAll({
+      'Content-type': 'application/json',
+      'Authorization': 'Bearer $token',
+    });
+    for (var expense in expenses) {
+      request.fields['local_uiid'] = expense['id'].toString();
+      request.fields['category'] = expense['category'];
+      request.fields['amount'] = expense['amount'].toString();
+      request.fields['receipt'] = expense['receipt'];
+      request.files.add(
+        await http.MultipartFile.fromPath('image', expense['imagePath']),
+      );
+      var response = await request.send();
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("Expense synced successfully: $expense");
+      } else {
+        print("Failed to sync expense: $expense");
+      }
+    }
+  } catch (e) {
+    print("Error syncing local data: $e");
+  }
 }
 
 Future<void> postUser(String name, String age) async {
