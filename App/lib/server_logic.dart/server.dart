@@ -57,14 +57,16 @@ Future<void> _onCreate(Database db, int version) async {
   )
   ''');
   await db.execute('''
-  CREATE TABLE ${DatabaseHelper._tablename2}(
+  CREATE TABLE ${DatabaseHelper._tablename3}(
+    id TEXT ,
     salaryType TEXT,
-    salaryAmount Interger,
+    salaryAmount INTEGER,
     salaryDate TEXT
     )
   ''');
+  print("✅ Income table created!");
   await db.execute('''
-  CREATE TABLE ${DatabaseHelper._tablename3}(
+  CREATE TABLE ${DatabaseHelper._tablename2}(
     id INTEGER ,
     username TEXT
   )

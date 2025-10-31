@@ -2,6 +2,7 @@ import 'Salarycalc/salarydata.dart';
 import 'package:flutter/material.dart';
 import 'package:extrack/server_logic.dart/server.dart';
 import 'package:extrack/home.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 // import 'dart:convert';
 // import 'package:http/http.dart' as http;
 
@@ -91,8 +92,8 @@ class _SalaryState extends State<Salary> {
           ),
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            setState(() {
+          onPressed: ()  {
+            setState(() async {
               Salarydata().Amount = salaryAmount.text == ''
                   ? 0
                   : double.tryParse(salaryAmount.text) ?? 0;
@@ -122,7 +123,10 @@ class _SalaryState extends State<Salary> {
 
                 salaryData.date ?? '',
               );
+              final storage = FlutterSecureStorage();
+              final userid = await storage.read(key: 'userid');
               saveIncome({
+                'id': userid ?? '',
                 'salaryType': salaryData.salaryType ?? '',
                 'salaryAmount': salaryData.Amount ?? 0,
                 'salaryDate': salaryData.date ?? '',
