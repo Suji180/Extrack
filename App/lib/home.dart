@@ -588,7 +588,7 @@ class _HomepageState extends ConsumerState<Homepage> {
           _pickedImage!.path,
         );
       } else if (!newexpenseAmountController.text.isEmpty &&
-          !newexpenseNameController.text.isEmpty) {
+          !newexpenseNameController.text.isEmpty && _pickedImage != null) {
         final storage = FlutterSecureStorage();
         String? user = await storage.read(key: 'userid');
         if (user == null) return;

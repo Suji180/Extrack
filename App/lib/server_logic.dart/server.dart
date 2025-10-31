@@ -46,9 +46,9 @@ Future<Database> _initDatabase() async {
 Future<void> _onCreate(Database db, int version) async {
   await db.execute('''
   CREATE TABLE ${DatabaseHelper._tablename1}(
-    id Integer ,
+    id INTEGER ,
     category TEXT,
-    amount REAL,
+    amount Interger,
     date TEXT,
     receipt TEXT,
     imagePath TEXT,
