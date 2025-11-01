@@ -78,6 +78,7 @@ Future<int> saveIncome(Map<String, dynamic> income) async {
   print("inserting income into local database: $income");
   return await db.insert(DatabaseHelper._tablename3, income);
 }
+
 Future<List<Map<String, dynamic>>> getIncome() async {
   final db = await DatabaseHelper().database;
   final List<Map<String, dynamic>> result = await db.query(
@@ -112,11 +113,22 @@ Future<List<Map<String, dynamic>>> getExpenses() async {
   );
   final storage = FlutterSecureStorage();
   final String? userid = await storage.read(key: 'userid');
-  if(result[0]['id'].toString() == userid){
-    print("Fetched expenses from local database: $result");
-    return result;
+  if (result.isEmpty) {
+    print("No expenses found in local database.");
+    return [];
   }
-  return [];
+
+  final userExpenses = result
+      .where((item) => item['id'] != null && item['id'].toString() == userid)
+      .toList();
+
+  if (userExpenses.isNotEmpty) {
+    print("Fetched expenses for user $userid: $userExpenses");
+    return userExpenses;
+  } else {
+    print("No expenses found for user $userid.");
+    return [];
+  }
 }
 
 void connectionlistener() async {
@@ -137,16 +149,22 @@ void connectionlistener() async {
     }
   });
 }
-Future<void> updatestatus(Database db, String id,String category, int amount) async {
+
+Future<void> updatestatus(
+  Database db,
+  String id,
+  String category,
+  int amount,
+) async {
   await db.update(
     DatabaseHelper._tablename1,
     {'status': 'synced'},
     where: 'id = ? AND category = ? AND amount = ?',
-    whereArgs: [id, category, amount],  
-    
+    whereArgs: [id, category, amount],
   );
   print("Expense with id $id marked as synced in local database.");
 }
+
 Future<List<Map<String, dynamic>>> formattedExpenses() async {
   final expenses = await getExpenses();
   List<Map<String, dynamic>> formattedExpenses = expenses.map((expense) {
@@ -186,7 +204,6 @@ Future<void> postlocaldata() async {
       }
     } else {
       print("Failed to sync expense: ${expense}");
-
     }
   } catch (e) {
     print("Error syncing local data: $e");
@@ -261,7 +278,9 @@ Future<void> getuser(String email, String password) async {
       headers: {'Content-type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
-    if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 202) {
+    if (response.statusCode == 200 ||
+        response.statusCode == 201 ||
+        response.statusCode == 202) {
       print("sign in Successfully");
       var jsonresponse = json.decode(response.body);
       print(jsonresponse["session_token"]);
@@ -299,7 +318,7 @@ Future<void> resetpassword(String email) async {
   }
 }
 
-Future<void> passwordresetotp(String email,  int otp) async {
+Future<void> passwordresetotp(String email, int otp) async {
   print("inside password reset otp function");
   print(email);
   print(otp);
@@ -310,7 +329,9 @@ Future<void> passwordresetotp(String email,  int otp) async {
       headers: {'Content-type': 'application/json'},
       body: jsonEncode({'email': email, 'otp': otp}),
     );
-    if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 202) {
+    if (response.statusCode == 200 ||
+        response.statusCode == 201 ||
+        response.statusCode == 202) {
       print("otp verify Successfully");
     } else {
       print("password not reset ");
@@ -319,7 +340,12 @@ Future<void> passwordresetotp(String email,  int otp) async {
     print("error occured $e");
   }
 }
-Future<void> passwordresetconfirm(String email, int otp,String newpasswsord) async{
+
+Future<void> passwordresetconfirm(
+  String email,
+  int otp,
+  String newpasswsord,
+) async {
   print("inside password reset confirm function");
   print(email);
   print(newpasswsord);
@@ -329,18 +355,18 @@ Future<void> passwordresetconfirm(String email, int otp,String newpasswsord) asy
     final response = await http.post(
       url,
       headers: {'Content-type': 'application/json'},
-      body: jsonEncode({'email': email, 'otp': otp , 'password': newpasswsord}),
+      body: jsonEncode({'email': email, 'otp': otp, 'password': newpasswsord}),
     );
-    if(response.statusCode == 200 || response.statusCode ==201){
+    if (response.statusCode == 200 || response.statusCode == 201) {
       print("password reset successfully");
     } else {
       print("password not reset ");
     }
   } catch (e) {
     print("error occured $e");
-  }   
-    
+  }
 }
+
 Future<void> postexpenses(
   String category,
   String amount,
@@ -549,17 +575,19 @@ Future<String> getincome() async {
   final storage = FlutterSecureStorage();
   final String? user = await storage.read(key: "userid");
   final income = await getIncome();
-  print(income);
+  print("");
 
   print("Income from local database: $income");
-  if( income.isEmpty){
+  if (income.isEmpty) {
     print("no income found in local database");
     return "null";
   }
-  if (income[0]['id'].toString() == user) {
-    print("it sync account salary");
-    print(income[0]['salaryAmount'].toString());
-    return income[0]['salaryAmount'].toString();
+  for (var entry in income) {
+    if (entry['id'].toString() == user) {
+      print("it sync account salary");
+      print(entry['salaryAmount'].toString());
+      return entry['salaryAmount'].toString();
+    }
   }
   return "null";
 }

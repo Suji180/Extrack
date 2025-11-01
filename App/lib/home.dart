@@ -70,11 +70,12 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
 
 Future<Map<String, dynamic>?> localcached() async {
   final income = await getincome();
-  print(income);
+  print("for testing $income");
 
   if (income.toString() != "null") {
     print("Income from local cache: $income");
     final callincome = await getExpenses();
+    print("for testing $callincome");
     double parsedAmount = 0.0;
     if (callincome != null) {
       for (var inc in callincome) {
@@ -94,6 +95,7 @@ Future<Map<String, dynamic>?> localcached() async {
       }
     }
     print("income written $income");
+    print("budget written $parsedAmount");
 
     return {'income': income, 'budget': parsedAmount.toString()};
   } else {
