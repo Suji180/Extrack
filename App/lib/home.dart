@@ -70,7 +70,9 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
 
 Future<Map<String, dynamic>?> localcached() async {
   final income = await getincome();
-  if (income != null) {
+  print(income);
+
+  if (income.toString() != "null") {
     print("Income from local cache: $income");
     final callincome = await getExpenses();
     double parsedAmount = 0.0;
@@ -84,12 +86,14 @@ Future<Map<String, dynamic>?> localcached() async {
           value = account.toDouble();
         } else {
           print('cached expense has unsupported type');
+          continue;
         }
         parsedAmount += value;
         print('cached expense parsed amount: $parsedAmount');
         print('cached expense amount: $account');
       }
     }
+    print("income written $income");
 
     return {'income': income, 'budget': parsedAmount.toString()};
   } else {
@@ -133,7 +137,7 @@ class _HomepageState extends ConsumerState<Homepage> {
     final setincome = await localcached();
     print("Local cached data: $setincome");
 
-    if (setincome != null && setincome['income'] != null && setincome['income'].toString() != "null") {
+    if (setincome != null ) {
       double? total = double.tryParse(setincome['income']);
       double spend = 0.0;
 
@@ -147,10 +151,7 @@ class _HomepageState extends ConsumerState<Homepage> {
       final spendStr = await storage.read(key: "spendbudget");
       final totalBalStr = await storage.read(key: "totalbalance");
       final String? user = await storage.read(key: 'username');
-      
-      
-      
-      
+
       // if (spendStr != null && totalBalStr != null) {
       //   print("Retrieved spendbudget and totalbalance from storage:");
       //   print("spendbudget: $spendStr, totalbalance: $totalBalStr");
@@ -486,7 +487,8 @@ class _HomepageState extends ConsumerState<Homepage> {
           _pickedImage!.path,
         );
       } else if (!newexpenseAmountController.text.isEmpty &&
-          !newexpenseNameController.text.isEmpty && _pickedImage != null) {
+          !newexpenseNameController.text.isEmpty &&
+          _pickedImage != null) {
         final storage = FlutterSecureStorage();
         String? user = await storage.read(key: 'userid');
         if (user == null) return;

@@ -549,6 +549,7 @@ Future<String> getincome() async {
   final storage = FlutterSecureStorage();
   final String? user = await storage.read(key: "userid");
   final income = await getIncome();
+  print(income);
 
   print("Income from local database: $income");
   if( income.isEmpty){
@@ -556,6 +557,7 @@ Future<String> getincome() async {
     return "null";
   }
   if (income[0]['id'].toString() == user) {
+    print("it sync account salary");
     print(income[0]['salaryAmount'].toString());
     return income[0]['salaryAmount'].toString();
   }
