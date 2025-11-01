@@ -6,6 +6,7 @@ from starlette.concurrency import run_in_threadpool
 import os
 from typing import List
 from basemodel import sync_data
+import json, ast
 
 
 load = APIRouter()
@@ -17,7 +18,6 @@ if not os.path.exists(directory):
 @load.post("/sync_data")
 async def sync_offline_data(full_data: List[sync_data], 
                         auth = Header(None, alias = "Authorization"), conn = Depends(get_connection)):
-    print(auth)
     if not auth or not auth.startswith("Bearer "):
         raise HTTPException(status_code= 401, detail= "Authrization Header should start with Bearer ")
     
@@ -25,13 +25,17 @@ async def sync_offline_data(full_data: List[sync_data],
     uid = get_user_id(jwt_token)
 
     inserted_data = [(item.local_id, item.category, item.amount) for item in full_data]
-
-    try:
-        await conn.executemany("INSERT INTO expenses (id, category, amount) VALUES ($1, $2, $3)",
-                            inserted_data)
-
-            
-        return {"Message": "Data synced successfully", "synced_data": inserted_data}
+    synced_data = json.dumps(inserted_data)
+    data = ast.literal_eval(synced_data)
+    if int(data[0][0]) == int(uid):
+        try:
+            await conn.executemany("INSERT INTO expenses (id, category, amount) VALUES ($1, $2, $3) RETURNING id, category, amount",
+                                        inserted_data)
+                    
+            return {"Message": "Data synced successfully", "synced_data": synced_data}
+                
+        except asyncpg.PostgresError as e:
+                raise HTTPException(status_code=500, detail= f"DB Error : {e}")
         
-    except asyncpg.PostgresError as e:
-        raise HTTPException(status_code=500, detail= f"DB Error : {e}")
+    else:
+         raise HTTPException(status_code= status.HTTP_409_CONFLICT, detail= "Sync not done")

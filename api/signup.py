@@ -21,7 +21,7 @@ load = APIRouter()
 WEB_HOOK = os.getenv("N8N_WEBHOOK_URL")
 print(WEB_HOOK)
 
-@load.post("/signup")
+@load.post("/signup", status_code=201)
 async def signup(user: Signup, conn = Depends(get_connection)):
     try:
         otp_sent =  await send_otp(user.email, WEB_HOOK, conn)
@@ -31,7 +31,7 @@ async def signup(user: Signup, conn = Depends(get_connection)):
     except Exception as e:
         raise HTTPException(status_code= status.HTTP_400_BAD_REQUEST, detail= "OTP Not sent")
     
-@load.post("/otp")
+@load.post("/otp", status_code=202)
 async def signup_verify_otp(user: otp, conn = Depends(get_connection)):
     passwd = user.password
     salt = bcrypt.gensalt()
@@ -95,7 +95,7 @@ async def send_otp(email, web_hook_url, conn):
     except Exception as e:
         print(f"Error when making the post request : {e}")
 
-@load.post("/login")
+@load.post("/login", status_code=202)
 async def login(user: Login, conn = Depends(get_connection)):
     passwd = user.password
     try:
@@ -200,7 +200,7 @@ def create_jwt_for_guser(username: str, user_id: str, email: str) -> str:
 
     return encoded_jwt
 
-@load.post("/glogin")
+@load.post("/glogin", status_code=201)
 async def google_login(token: glogin, conn = Depends(get_connection)):
     auth_code = token.AuthCode
     print("Auth_code:", auth_code)
@@ -269,7 +269,7 @@ def get_user_name(jwt_token):
     g_username = data.get("name")
     return g_username
 
-@load.post("/forget_password")
+@load.post("/forget_password", status_code=200)
 async def forget_password(user: forget_pass, conn = Depends(get_connection)):
     email = user.email
     otp_sent =  await send_otp(email, WEB_HOOK, conn)
@@ -278,7 +278,7 @@ async def forget_password(user: forget_pass, conn = Depends(get_connection)):
         return {"Message": "OTP Sent Successfully ..."}
 
 
-@load.post("/submit_otp")
+@load.post("/submit_otp", status_code=202)
 async def submit_otp(user: submit_otp, conn = Depends(get_connection)):
     try:
         otp_data = await conn.fetchrow("SELECT hashed_otp, created_at FROM user_otps WHERE email_id = $1 ORDER BY created_at DESC", 

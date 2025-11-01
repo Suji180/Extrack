@@ -32,6 +32,6 @@ class new_pass(BaseModel):
     password: str
 
 class sync_data(BaseModel):
-    local_id: float
+    local_id: int
     category: str
     amount: int
