@@ -47,7 +47,7 @@ Future<Database> _initDatabase() async {
 Future<void> _onCreate(Database db, int version) async {
   await db.execute('''
   CREATE TABLE ${DatabaseHelper._tablename1}(
-    id INTEGER ,
+    id TEXT ,
     category TEXT,
     amount Interger,
     date TEXT,
@@ -128,7 +128,7 @@ Future<List<Map<String, dynamic>>> formattedExpenses() async {
   final expenses = await getExpenses();
   List<Map<String, dynamic>> formattedExpenses = expenses.map((expense) {
     return {
-      'id': BigInt.parse(expense['id'].toString()),
+      'local_id': expense['id'].toString(),
       'category': expense['category'],
       'amount': expense['amount'],
     };
@@ -146,14 +146,14 @@ Future<void> postlocaldata() async {
     return;
   }
   try {
-    final url = Uri.parse("http://10.0.2.2:8000/");
+    final url = Uri.parse("http://10.0.2.2:8000/sync_data");
     final response = await http.post(
       url,
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({expense}),
+      body: jsonEncode(expense),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       print("Expense synced successfully: ${expense}");
