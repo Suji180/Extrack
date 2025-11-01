@@ -1,7 +1,6 @@
-from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter
-from pydantic import BaseModel
+from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter, status
 import asyncpg
-from basemodel import Signup, Login, glogin
+from basemodel import Signup, Login, glogin, otp, forget_pass, submit_otp, new_pass
 from db import get_connection
 import bcrypt
 from google.oauth2 import id_token
@@ -22,42 +21,59 @@ load = APIRouter()
 WEB_HOOK = os.getenv("N8N_WEBHOOK_URL")
 print(WEB_HOOK)
 
-@load.post("/signup")
+@load.post("/signup", status_code=201)
 async def signup(user: Signup, conn = Depends(get_connection)):
+    try:
+        otp_sent =  await send_otp(user.email, WEB_HOOK, conn)
+        if otp_sent:
+            return {"Message": "OTP sent successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code= status.HTTP_400_BAD_REQUEST, detail= "OTP Not sent")
+    
+@load.post("/otp", status_code=202)
+async def signup_verify_otp(user: otp, conn = Depends(get_connection)):
     passwd = user.password
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(passwd.encode('utf-8'), salt)
     passwd = hashed.decode('utf-8')
-    uid = uuid.uuid4()
-    uid = uid.int
+    uid  = random.randint(000000000, 999999999)
     try:
-        otp_sent = await send_otp(user.email, WEB_HOOK, conn)
-        if otp_sent:
-            hashed_otp = await conn.fetchrow("SELECT hashed_otp FROM user_otps ORDER BY created_at DESC;")
-            
-            otp = otp_sent['otp_sent']
-            hashed_otp = str(hashed_otp[0])
+        otp_data = await conn.fetchrow("SELECT hashed_otp, created_at FROM user_otps WHERE email_id = $1 ORDER BY created_at DESC", 
+                                       user.email)
+        gen_time = otp_data['created_at']
+        hashed_otp = str(otp_data['hashed_otp'])
+        user_posted_otp = str(user.otp)  
 
-            otp = str(otp)
-            if bcrypt.checkpw(otp.encode('utf-8'), hashed_otp.encode('utf-8')):
-                await conn.execute("INSERT INTO users (id, email_id, passwd) VALUES ($1, $2, $3)", uid, user.email, passwd)
-                return {"Message" : "The Signup is Successful"}
-            else:
-                return {"message": "Signup failed"}
+        exp_time = gen_time + timedelta(minutes=2)
+
+        current_time = datetime.now(timezone.utc)
+
+        if current_time > exp_time:
+            print("Otp expired")
+            raise HTTPException(status_code= 400, detail= "OTP is Expired ...")
+        
+        if bcrypt.checkpw(user_posted_otp.encode('utf-8'), hashed_otp.encode('utf-8')):
+            await conn.execute("INSERT INTO users (id, email_id, passwd) VALUES ($1, $2, $3)", uid, user.email, passwd)
+            raise HTTPException(status_code= status.HTTP_201_CREATED, detail= "Signup Successfull")
+        else:
+            raise HTTPException(status_code= 401, detail = "Wrong OTP Submitted ...")
 
     except asyncpg.PostgresError as error:
         raise HTTPException(status_code = 500, detail = f"{error}")
-    
+
 
 async def send_otp(email, web_hook_url, conn):
     otp = random.randint(100000, 999999)
+    gen_time = datetime.now(timezone.utc)
+    print(gen_time)
     otp = str(otp)
     salt = bcrypt.gensalt()
     hash_otp = bcrypt.hashpw(otp.encode('utf-8'), salt)
     hashed_otp  = hash_otp.decode('utf-8')
     otp = int(otp)
 
-    await conn.execute("INSERT INTO user_otps (hashed_otp) VALUES ($1)", hashed_otp)
+    await conn.execute("INSERT INTO user_otps (hashed_otp, created_at, email_id) VALUES ($1, $2, $3)", hashed_otp, gen_time, email)
 
     payload = {
         "email":email,
@@ -79,7 +95,7 @@ async def send_otp(email, web_hook_url, conn):
     except Exception as e:
         print(f"Error when making the post request : {e}")
 
-@load.post("/login")
+@load.post("/login", status_code=202)
 async def login(user: Login, conn = Depends(get_connection)):
     passwd = user.password
     try:
@@ -184,7 +200,7 @@ def create_jwt_for_guser(username: str, user_id: str, email: str) -> str:
 
     return encoded_jwt
 
-@load.post("/glogin")
+@load.post("/glogin", status_code=201)
 async def google_login(token: glogin, conn = Depends(get_connection)):
     auth_code = token.AuthCode
     print("Auth_code:", auth_code)
@@ -217,7 +233,7 @@ async def google_login(token: glogin, conn = Depends(get_connection)):
     
 def create_jwt_for_nuser(user_id: str, email_id: str) -> str:
     user_id = str(user_id)
-    exp_time = datetime.utcnow() + timedelta(days=1)
+    exp_time = datetime.utcnow() + timedelta(days=7)
     payload = {
         "sub": user_id,
         "iat": datetime.utcnow(),
@@ -252,3 +268,52 @@ def get_user_name(jwt_token):
     print("Decoded_jwt:", data)
     g_username = data.get("name")
     return g_username
+
+@load.post("/forget_password", status_code=200)
+async def forget_password(user: forget_pass, conn = Depends(get_connection)):
+    email = user.email
+    otp_sent =  await send_otp(email, WEB_HOOK, conn)
+
+    if otp_sent:
+        return {"Message": "OTP Sent Successfully ..."}
+
+
+@load.post("/submit_otp", status_code=202)
+async def submit_otp(user: submit_otp, conn = Depends(get_connection)):
+    try:
+        otp_data = await conn.fetchrow("SELECT hashed_otp, created_at FROM user_otps WHERE email_id = $1 ORDER BY created_at DESC", 
+                                        user.email)
+        gen_time = otp_data['created_at']
+        hashed_otp = str(otp_data['hashed_otp'])
+        user_posted_otp = str(user.otp)  
+
+        exp_time = gen_time + timedelta(minutes=2)
+
+        current_time = datetime.now(timezone.utc)
+
+        if current_time > exp_time:
+            print("Otp expired")
+            raise HTTPException(status_code= 400, detail= "OTP is Expired ...")
+            
+        if bcrypt.checkpw(user_posted_otp.encode('utf-8'), hashed_otp.encode('utf-8')):
+            raise HTTPException(status_code= status.HTTP_202_ACCEPTED, detail= "OTP Accepted ...")
+        else:
+            raise HTTPException(status_code= status.HTTP_406_NOT_ACCEPTABLE, detail = "Wrong OTP Submitted ...")
+
+    except asyncpg.PostgresError as error:
+        raise HTTPException(status_code = 500, detail = f"{error}")
+    
+
+@load.post("/set_new_pass")
+async def set_pass(user: new_pass, conn = Depends(get_connection)):
+    passwd = user.password
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(passwd.encode('utf-8'), salt)
+    passwd = hashed.decode('utf-8')
+
+    try:
+        await conn.execute("UPDATE users SET passwd = $1 WHERE email_id = $2", passwd, user.email)
+        raise HTTPException(status_code= status.HTTP_201_CREATED, detail= "Password reset successfull")
+    
+    except asyncpg.PostgresError as e:
+        raise HTTPException(status_code= 500, detail= f"DB Error : {e}")

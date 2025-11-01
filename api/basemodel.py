@@ -1,8 +1,7 @@
 from pydantic import BaseModel
-
+from typing import Union
 class Signup(BaseModel):
     email: str
-    password: str
 
 class Login(BaseModel):
     email: str
@@ -15,3 +14,24 @@ class Income(BaseModel):
     
 class glogin(BaseModel):
     AuthCode: str
+
+class otp(BaseModel):
+    email: str
+    password: str
+    otp: int
+
+class forget_pass(BaseModel):
+    email: str
+
+class submit_otp(BaseModel):
+    email: str
+    otp: int
+
+class new_pass(BaseModel):
+    email: str  
+    password: str
+
+class sync_data(BaseModel):
+    local_id: int
+    category: str
+    amount: int

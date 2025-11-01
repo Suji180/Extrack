@@ -4,6 +4,7 @@ from db import start_db, shutdown
 from signup import load as load_signup
 from expense import load as load_expense
 from dashboard import load as load_income
+from sync import load as load_sync
 
 app = FastAPI()
 
@@ -19,4 +20,5 @@ async def shutdown_db():
 app.include_router(load_signup)
 app.include_router(load_expense)
 app.include_router(load_income)
+app.include_router(load_sync)
 
