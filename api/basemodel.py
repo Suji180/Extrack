@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-
+from typing import Union
 class Signup(BaseModel):
     email: str
 
@@ -30,3 +30,8 @@ class submit_otp(BaseModel):
 class new_pass(BaseModel):
     email: str  
     password: str
+
+class sync_data(BaseModel):
+    local_id: float
+    category: str
+    amount: int

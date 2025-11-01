@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter, status
-from pydantic import BaseModel
 import asyncpg
 from basemodel import Signup, Login, glogin, otp, forget_pass, submit_otp, new_pass
 from db import get_connection
@@ -38,8 +37,7 @@ async def signup_verify_otp(user: otp, conn = Depends(get_connection)):
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(passwd.encode('utf-8'), salt)
     passwd = hashed.decode('utf-8')
-    uid = uuid.uuid4()
-    uid = uid.int
+    uid  = random.randint(000000000, 999999999)
     try:
         otp_data = await conn.fetchrow("SELECT hashed_otp, created_at FROM user_otps WHERE email_id = $1 ORDER BY created_at DESC", 
                                        user.email)
@@ -235,7 +233,7 @@ async def google_login(token: glogin, conn = Depends(get_connection)):
     
 def create_jwt_for_nuser(user_id: str, email_id: str) -> str:
     user_id = str(user_id)
-    exp_time = datetime.utcnow() + timedelta(days=1)
+    exp_time = datetime.utcnow() + timedelta(days=7)
     payload = {
         "sub": user_id,
         "iat": datetime.utcnow(),
