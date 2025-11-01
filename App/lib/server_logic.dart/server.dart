@@ -137,7 +137,16 @@ void connectionlistener() async {
     }
   });
 }
-
+Future<void> updatestatus(Database db, String id,String category, int amount) async {
+  await db.update(
+    DatabaseHelper._tablename1,
+    {'status': 'synced'},
+    where: 'id = ? AND category = ? AND amount = ?',
+    whereArgs: [id, category, amount],  
+    
+  );
+  print("Expense with id $id marked as synced in local database.");
+}
 Future<List<Map<String, dynamic>>> formattedExpenses() async {
   final expenses = await getExpenses();
   List<Map<String, dynamic>> formattedExpenses = expenses.map((expense) {
@@ -171,8 +180,13 @@ Future<void> postlocaldata() async {
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       print("Expense synced successfully: ${expense}");
+      final db = await DatabaseHelper().database;
+      for (var exp in expense) {
+        await updatestatus(db, exp['local_id'], exp['category'], exp['amount']);
+      }
     } else {
       print("Failed to sync expense: ${expense}");
+
     }
   } catch (e) {
     print("Error syncing local data: $e");
@@ -247,7 +261,7 @@ Future<void> getuser(String email, String password) async {
       headers: {'Content-type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
-    if (response.statusCode == 200 || response.statusCode == 201) {
+    if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 202) {
       print("sign in Successfully");
       var jsonresponse = json.decode(response.body);
       print(jsonresponse["session_token"]);
