@@ -167,14 +167,18 @@ Future<void> updatestatus(
 
 Future<List<Map<String, dynamic>>> formattedExpenses() async {
   final expenses = await getExpenses();
-  List<Map<String, dynamic>> formattedExpenses = expenses.map((expense) {
-    return {
-      'local_id': expense['id'].toString(),
-      'category': expense['category'],
-      'amount': expense['amount'],
-    };
-  }).toList();
-  return formattedExpenses;
+  List<Map<String, dynamic>> pendingExpenses = expenses
+      .where((exp) => exp['status'] == 'pending')
+      .map((expense) {
+        return {
+          'local_id': expense['id'].toString(),
+          'category': expense['category'],
+          'amount': expense['amount'],
+        };
+      })
+      .toList();
+
+  return pendingExpenses;
 }
 
 Future<void> postlocaldata() async {
