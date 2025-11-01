@@ -83,6 +83,7 @@ Future<List<Map<String, dynamic>>> getIncome() async {
   final List<Map<String, dynamic>> result = await db.query(
     DatabaseHelper._tablename3,
   );
+
   print("Fetched income from local database: $result");
   return result;
 }
@@ -109,8 +110,13 @@ Future<List<Map<String, dynamic>>> getExpenses() async {
   final List<Map<String, dynamic>> result = await db.query(
     DatabaseHelper._tablename1,
   );
-  print("Fetched expenses from local database: $result");
-  return result;
+  final storage = FlutterSecureStorage();
+  final String? userid = await storage.read(key: 'userid');
+  if(result[0]['id'].toString() == userid){
+    print("Fetched expenses from local database: $result");
+    return result;
+  }
+  return [];
 }
 
 void connectionlistener() async {
