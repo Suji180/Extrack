@@ -112,6 +112,7 @@ class _HomepageState extends ConsumerState<Homepage> {
   File? selectedimage;
   Future<void> loaduiupdated() async {
     final data = await getincome();
+    print("Income data for UI update: $data");
     setState(() {
       if (data != null) {
         isuiupdated = false;
@@ -130,7 +131,7 @@ class _HomepageState extends ConsumerState<Homepage> {
     final setincome = await localcached();
     print("Local cached data: $setincome");
 
-    if (setincome != null && setincome['income'] != null) {
+    if (setincome != null && setincome['income'] != null && setincome['income'].toString() != "null") {
       double? total = double.tryParse(setincome['income']);
       double spend = 0.0;
 

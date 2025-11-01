@@ -60,7 +60,7 @@ Future<void> _onCreate(Database db, int version) async {
   CREATE TABLE ${DatabaseHelper._tablename3}(
     id TEXT ,
     salaryType TEXT,
-    salaryAmount INTEGER,
+    salaryAmount INTEGER DEFAULT null,
     salaryDate TEXT
     )
   ''');
@@ -524,18 +524,24 @@ Future<void> saveincomedata(String salaryType, String salaryDate) async {
 //   // final expiryincome = DateTime.tryParse(expiryincomeString);
 //   return income;
 // }
+
 Future<String> getincome() async {
+  final storage = FlutterSecureStorage();
+  final String? user = await storage.read(key: "userid");
   final income = await getIncome();
+
   print("Income from local database: $income");
-  if(income.isEmpty){
+  if( income.isEmpty){
     print("no income found in local database");
     return "null";
   }
-  else{
+  if (income[0]['id'].toString() == user) {
+    print(income[0]['salaryAmount'].toString());
     return income[0]['salaryAmount'].toString();
   }
-
+  return "null";
 }
+
 Future<void> logout() async {
   final storage = FlutterSecureStorage();
   String? jwt = await storage.read(key: 'session_token');
