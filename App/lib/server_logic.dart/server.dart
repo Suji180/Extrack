@@ -78,6 +78,14 @@ Future<int> saveIncome(Map<String, dynamic> income) async {
   print("inserting income into local database: $income");
   return await db.insert(DatabaseHelper._tablename3, income);
 }
+Future<List<Map<String, dynamic>>> getIncome() async {
+  final db = await DatabaseHelper().database;
+  final List<Map<String, dynamic>> result = await db.query(
+    DatabaseHelper._tablename3,
+  );
+  print("Fetched income from local database: $result");
+  return result;
+}
 
 Future<int> insertuser(Map<String, dynamic> user) async {
   final db = await DatabaseHelper().database;
@@ -473,7 +481,7 @@ Future<void> addincome(
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       print("Income added Successfully");
-      saveincome(salaryAmount.toString());
+      // saveincome(salaryAmount.toString());
       saveincomedata(salaryType, salaryDate);
     } else {
       print("income not added");
@@ -492,31 +500,42 @@ Future<void> saveincomedata(String salaryType, String salaryDate) async {
   print(salaryDate);
 }
 
-Future<void> saveincome(String income) async {
-  final storage = FlutterSecureStorage();
-  final String? user = await storage.read(key: 'username');
-  final expiryincome = DateTime.now().add(const Duration(days: 30));
-  await storage.write(key: 'income$user', value: income);
-  await storage.write(
-    key: 'income_expiry',
-    value: expiryincome.toIso8601String(),
-  );
+// Future<void> saveincome(String income) async {
+//   final storage = FlutterSecureStorage();
+//   final String? user = await storage.read(key: 'username');
+//   final expiryincome = DateTime.now().add(const Duration(days: 30));
+//   await storage.write(key: 'income$user', value: income);
+//   await storage.write(
+//     key: 'income_expiry',
+//     value: expiryincome.toIso8601String(),
+//   );
 
-  print("Income saved successfully  in secure storage");
-}
+//   print("Income saved successfully  in secure storage");
+// }
 
-Future<String?> getincome() async {
-  final storage = FlutterSecureStorage();
-  final String? user = await storage.read(key: 'username');
-  final income = await storage.read(key: 'income$user');
-  final expiryincomeString = await storage.read(key: 'income_expiry');
-  if (income == null || expiryincomeString == null) {
-    return null;
+// Future<String?> getincome() async {
+//   final storage = FlutterSecureStorage();
+//   final String? user = await storage.read(key: 'username');
+//   final income = await storage.read(key: 'income$user');
+//   final expiryincomeString = await storage.read(key: 'income_expiry');
+//   if (income == null || expiryincomeString == null) {
+//     return null;
+//   }
+//   // final expiryincome = DateTime.tryParse(expiryincomeString);
+//   return income;
+// }
+Future<String> getincome() async {
+  final income = await getIncome();
+  print("Income from local database: $income");
+  if(income.isEmpty){
+    print("no income found in local database");
+    return "null";
   }
-  // final expiryincome = DateTime.tryParse(expiryincomeString);
-  return income;
-}
+  else{
+    return income[0]['salaryAmount'].toString();
+  }
 
+}
 Future<void> logout() async {
   final storage = FlutterSecureStorage();
   String? jwt = await storage.read(key: 'session_token');
