@@ -271,6 +271,48 @@ Future<void> resetpassword(String email) async {
   }
 }
 
+Future<void> passwordresetotp(String email,  int otp) async {
+  print("inside password reset otp function");
+  print(email);
+  print(otp);
+  try {
+    final url = Uri.parse("http://10.0.2.2:8000/submit_otp");
+    final response = await http.post(
+      url,
+      headers: {'Content-type': 'application/json'},
+      body: jsonEncode({'email': email, 'otp': otp}),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 202) {
+      print("otp verify Successfully");
+    } else {
+      print("password not reset ");
+    }
+  } catch (e) {
+    print("error occured $e");
+  }
+}
+Future<void> passwordresetconfirm(String email, int otp,String newpasswsord) async{
+  print("inside password reset confirm function");
+  print(email);
+  print(newpasswsord);
+  print(otp);
+  try {
+    final url = Uri.parse("http://10.0.2.2:8000/set_new_pass");
+    final response = await http.post(
+      url,
+      headers: {'Content-type': 'application/json'},
+      body: jsonEncode({'email': email, 'otp': otp , 'password': newpasswsord}),
+    );
+    if(response.statusCode == 200 || response.statusCode ==201){
+      print("password reset successfully");
+    } else {
+      print("password not reset ");
+    }
+  } catch (e) {
+    print("error occured $e");
+  }   
+    
+}
 Future<void> postexpenses(
   String category,
   String amount,
