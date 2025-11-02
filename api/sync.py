@@ -24,18 +24,16 @@ async def sync_offline_data(full_data: List[sync_data],
     jwt_token = auth.split(" ")[1]
     uid = get_user_id(jwt_token)
 
-    inserted_data = [(item.local_id, item.category, item.amount) for item in full_data]
-    synced_data = json.dumps(inserted_data)
-    data = ast.literal_eval(synced_data)
-    if int(data[0][0]) == int(uid):
-        try:
-            await conn.executemany("INSERT INTO expenses (id, category, amount) VALUES ($1, $2, $3) RETURNING id, category, amount",
-                                        inserted_data)
-                    
-            return {"Message": "Data synced successfully", "synced_data": synced_data}
-                
-        except asyncpg.PostgresError as e:
-                raise HTTPException(status_code=500, detail= f"DB Error : {e}")
-        
+    inserted_data = [(uid, item.category, item.amount) for item in full_data]
+    if not full_data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No data found, All are synced ...")
     else:
-         raise HTTPException(status_code= status.HTTP_409_CONFLICT, detail= "Sync not done")
+        try:
+            await conn.executemany("INSERT INTO expenses (id, category, amount) VALUES ($1, $2, $3)",
+                                            inserted_data)
+                        
+            return {"Message": "Data synced successfully", "synced_data_count": len(inserted_data)}
+                    
+        except asyncpg.PostgresError as e:
+                print(f"Database Error during syncing the expense oof the user {uid}: {e}")
+                raise HTTPException(status_code=500, detail= f"DB Error : {e}")
