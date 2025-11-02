@@ -43,8 +43,6 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
 
     for (var exp in expense) {
       DateTime expDate = DateTime.parse(exp['date']);
-      print("Expense date: $expDate");
-      print("Today date: $today");
       print(exp);
       if (expDate.year == today.year &&
           expDate.month == today.month &&
@@ -70,12 +68,9 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
 
 Future<Map<String, dynamic>?> localcached() async {
   final income = await getincome();
-  print("for testing $income");
-
-  if (income.toString() != "null") {
+  if (income != null) {
     print("Income from local cache: $income");
     final callincome = await getExpenses();
-    print("for testing $callincome");
     double parsedAmount = 0.0;
     if (callincome != null) {
       for (var inc in callincome) {
@@ -87,15 +82,12 @@ Future<Map<String, dynamic>?> localcached() async {
           value = account.toDouble();
         } else {
           print('cached expense has unsupported type');
-          continue;
         }
         parsedAmount += value;
         print('cached expense parsed amount: $parsedAmount');
         print('cached expense amount: $account');
       }
     }
-    print("income written $income");
-    print("budget written $parsedAmount");
 
     return {'income': income, 'budget': parsedAmount.toString()};
   } else {
@@ -120,7 +112,6 @@ class _HomepageState extends ConsumerState<Homepage> {
   File? selectedimage;
   Future<void> loaduiupdated() async {
     final data = await getincome();
-    print("Income data for UI update: $data");
     setState(() {
       if (data != null) {
         isuiupdated = false;
@@ -139,7 +130,7 @@ class _HomepageState extends ConsumerState<Homepage> {
     final setincome = await localcached();
     print("Local cached data: $setincome");
 
-    if (setincome != null ) {
+    if (setincome != null && setincome['income'] != null) {
       double? total = double.tryParse(setincome['income']);
       double spend = 0.0;
 
@@ -153,7 +144,115 @@ class _HomepageState extends ConsumerState<Homepage> {
       final spendStr = await storage.read(key: "spendbudget");
       final totalBalStr = await storage.read(key: "totalbalance");
       final String? user = await storage.read(key: 'username');
+      final String? salaryType = await storage.read(key: 'salaryType$user');
+      final String? salaryDate = await storage.read(key: 'salaryDate$user');
+      if (salaryType != null && salaryDate != null) {
+        print("salaryType: $salaryType, salaryDate: $salaryDate");
+        if (salaryType == "Monthly") {
+          DateTime now = DateTime.now();
+          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
+          DateTime lastUpdate = lastUpdateStr != null
+              ? DateTime.parse(lastUpdateStr)
+              : now.subtract(const Duration(days: 30));
+          if (now.month != lastUpdate.month || now.year != lastUpdate.year) {
+            final gincome = await getincome();
+            total = double.parse(gincome ?? '0.0');
+            spend = 0;
+            await storage.write(key: "spendbudget", value: "0.0");
+            await storage.write(key: "totalbalance", value: total.toString());
+            await storage.write(
+              key: 'lastUpdateDate',
+              value: now.toIso8601String(),
+            );
+          } else {
+            print("Retrieved spendbudget and totalbalance from storage:");
+            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
+            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+          }
+        }
+        if (salaryType == "Weekly") {
+          DateTime now = DateTime.now();
+          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
+          DateTime lastUpdate = lastUpdateStr != null
+              ? DateTime.parse(lastUpdateStr)
+              : now.subtract(Duration(days: 7));
+          bool isSunday = now.weekday == DateTime.sunday;
+          bool weekPassed = now.difference(lastUpdate).inDays >= 7;
 
+          if (isSunday && weekPassed) {
+            final gincome = await getincome();
+            total = double.parse(gincome ?? '0.0');
+            spend = 0;
+            await storage.write(key: "spendbudget", value: "0.0");
+            await storage.write(key: "totalbalance", value: total.toString());
+            await storage.write(
+              key: 'lastUpdateDate',
+              value: now.toIso8601String(),
+            );
+          } else {
+            print("Retrieved spendbudget and totalbalance from storage:");
+            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
+            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+          }
+        }
+        if (salaryType == "Daily") {
+          DateTime now = DateTime.now();
+          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
+          print("lastUpdateStr: $lastUpdateStr");
+          DateTime lastUpdate = lastUpdateStr != null
+              ? DateTime.parse(lastUpdateStr)
+              : now.subtract(Duration(days: 1));
+
+          if ((now.day != lastUpdate.day ||
+              now.month != lastUpdate.month ||
+              now.year != lastUpdate.year)) {
+            print("Updating daily income for a new day");
+            final gincome = await getincome();
+            total = gincome != null
+                ? (total ?? 0) + double.parse(gincome)
+                : total;
+            spend = 0;
+            await storage.write(key: "spendbudget", value: "0.0");
+            await storage.write(key: "totalbalance", value: total.toString());
+            await storage.write(
+              key: 'lastUpdateDate',
+              value: now.toIso8601String(),
+            );
+          } else {
+            print("it was already updated today");
+            print("Retrieved spendbudget and totalbalance from storage:");
+            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+          }
+        }
+        if (salaryType == "Yearly") {
+          DateTime now = DateTime.now();
+          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
+          print("lastUpdateStr: $lastUpdateStr");
+          DateTime lastUpdate = lastUpdateStr != null
+              ? DateTime.parse(lastUpdateStr)
+              : now.subtract(Duration(days: 365));
+
+          if (lastUpdate.year != now.year) {
+            final gincome = await getincome();
+            total = double.parse(gincome ?? '0.0');
+            spend = 0;
+            await storage.write(key: "spendbudget", value: "0.0");
+            await storage.write(key: "totalbalance", value: total.toString());
+            await storage.write(
+              key: 'lastUpdateDate',
+              value: now.toIso8601String(),
+            );
+          } else {
+            print("Retrieved spendbudget and totalbalance from storage:");
+            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
+            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+          }
+        }
+      }
       // if (spendStr != null && totalBalStr != null) {
       //   print("Retrieved spendbudget and totalbalance from storage:");
       //   print("spendbudget: $spendStr, totalbalance: $totalBalStr");
@@ -308,9 +407,9 @@ class _HomepageState extends ConsumerState<Homepage> {
           ),
 
           actions: [
-            MaterialButton(onPressed: add, child: const Text('Add')),
+            MaterialButton(onPressed:()=> add(context), child: const Text('Add')),
 
-            MaterialButton(onPressed: cancel, child: const Text('Cancel ')),
+            MaterialButton(onPressed:()=> cancel(context), child: const Text('Cancel ')),
           ],
         );
       },
@@ -402,7 +501,7 @@ class _HomepageState extends ConsumerState<Homepage> {
           if (actualData.containsKey("error") &&
               actualData["error"] == "not related to expenses") {
             print("The audio does not relate to expenses.");
-            cancel();
+            cancel(context);
 
             return false;
           } else {
@@ -426,7 +525,7 @@ class _HomepageState extends ConsumerState<Homepage> {
               newreceiptNameController.text,
               '',
             );
-            cancel();
+            cancel(context);
           }
 
           try {
@@ -451,7 +550,7 @@ class _HomepageState extends ConsumerState<Homepage> {
     }
   }
 
-  void add() async {
+  void add(BuildContext context) async {
     Navigator.of(context).pop();
     print("it works");
     setState(() {
@@ -489,8 +588,7 @@ class _HomepageState extends ConsumerState<Homepage> {
           _pickedImage!.path,
         );
       } else if (!newexpenseAmountController.text.isEmpty &&
-          !newexpenseNameController.text.isEmpty &&
-          _pickedImage != null) {
+          !newexpenseNameController.text.isEmpty && _pickedImage != null) {
         final storage = FlutterSecureStorage();
         String? user = await storage.read(key: 'userid');
         if (user == null) return;
@@ -513,7 +611,7 @@ class _HomepageState extends ConsumerState<Homepage> {
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
-        cancel();
+        //cancel();
 
         clear();
       }
@@ -526,7 +624,7 @@ class _HomepageState extends ConsumerState<Homepage> {
     }
   }
 
-  void cancel() {
+  void cancel(BuildContext context) {
     print("cancelled");
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
