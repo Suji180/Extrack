@@ -124,6 +124,12 @@ class _HomepageState extends ConsumerState<Homepage> {
     });
   }
 
+  Future<void> resetandstore(double spend, double total) async {
+    final storage = FlutterSecureStorage();
+    await storage.write(key: "spendbudget", value: spend.toString());
+    await storage.write(key: "totalbalance", value: total.toString());
+  }
+
   Future<void> loadLocalData() async {
     print("Loading local data...");
     const storage = FlutterSecureStorage();
@@ -145,122 +151,131 @@ class _HomepageState extends ConsumerState<Homepage> {
 
       final spendStr = await storage.read(key: "spendbudget");
       final totalBalStr = await storage.read(key: "totalbalance");
-      final String? user = await storage.read(key: 'username');
-      final String? salaryType = await storage.read(key: 'salaryType$user');
-      final String? salaryDate = await storage.read(key: 'salaryDate$user');
-      if (salaryType != null && salaryDate != null) {
-        print("salaryType: $salaryType, salaryDate: $salaryDate");
-        if (salaryType == "Monthly") {
-          DateTime now = DateTime.now();
-          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
-          DateTime lastUpdate = lastUpdateStr != null
-              ? DateTime.parse(lastUpdateStr)
-              : now.subtract(const Duration(days: 30));
-          if (now.month != lastUpdate.month || now.year != lastUpdate.year) {
-            final gincome = await getincome();
-            total = double.parse(gincome ?? '0.0');
-            spend = 0;
-            await storage.write(key: "spendbudget", value: "0.0");
-            await storage.write(key: "totalbalance", value: total.toString());
-            await storage.write(
-              key: 'lastUpdateDate',
-              value: now.toIso8601String(),
-            );
-          } else {
-            print("Retrieved spendbudget and totalbalance from storage:");
-            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
-            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
-            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
-          }
-        }
-        if (salaryType == "Weekly") {
-          DateTime now = DateTime.now();
-          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
-          DateTime lastUpdate = lastUpdateStr != null
-              ? DateTime.parse(lastUpdateStr)
-              : now.subtract(Duration(days: 7));
-          bool isSunday = now.weekday == DateTime.sunday;
-          bool weekPassed = now.difference(lastUpdate).inDays >= 7;
+      final user = await storage.read(key: "userid");
+      final income = await getIncome();
+      final now = DateTime.now();
+      print("addui now: $now");
+      final today = DateTime(now.year, now.month, now.day);
+      // for (var entry in income) {
+      //   if (entry['id'].toString() == user) {
+      //     print("salary type is");
+      //     print(entry['salaryType']);
 
-          if (isSunday && weekPassed) {
-            final gincome = await getincome();
-            total = double.parse(gincome ?? '0.0');
-            spend = 0;
-            await storage.write(key: "spendbudget", value: "0.0");
-            await storage.write(key: "totalbalance", value: total.toString());
-            await storage.write(
-              key: 'lastUpdateDate',
-              value: now.toIso8601String(),
-            );
-          } else {
-            print("Retrieved spendbudget and totalbalance from storage:");
-            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
-            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
-            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
-          }
-        }
-        if (salaryType == "Daily") {
+      //     if (entry['salaryType'] == 'Daily') {
+      //       DateTime today = DateTime.now();
+      //       DateTime salaryDate = DateTime.parse(entry['salaryDate']);
+      //       if (today.day == salaryDate.day &&
+      //           today.month == salaryDate.month &&
+      //           today.year == salaryDate.year) {
+      //         spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+      //         total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+      //         print("it work that daily ");
+      //       } else {
+      //         spend = 0.0;
+      //         total = double.tryParse(setincome['income']);
+      //         print("refresh the income");
+      //         await resetandstore(spend ?? 0.0, total ?? 0.0);
+      //       }
+      //     } else if (entry['salaryType'] == 'Monthly') {
+      //       DateTime today = DateTime.now();
+      //       DateTime salaryDate = DateTime.parse(entry['salaryDate']);
+      //       if (today.month == salaryDate.month &&
+      //           today.year == salaryDate.year) {
+      //         spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+      //         total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+      //         print("it work that monthly ");
+      //       } else {
+      //         spend = 0.0;
+      //         total = double.tryParse(setincome['income']);
+      //         print("refresh the income");
+      //         await resetandstore(spend ?? 0.0, total ?? 0.0);
+      //       }
+      //     } else if (entry['salaryType'] == 'Weekly') {
+      //       DateTime today = DateTime.now();
+      //       DateTime salaryDate = DateTime.parse(entry['salaryDate']);
+      //       int difference = today.difference(salaryDate).inDays;
+      //       if (today.weekday == DateTime.sunday && difference >= 7) {
+      //         spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+      //         total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+      //         print("it work that weekly ");
+      //       } else {
+      //         spend = 0.0;
+      //         total = double.tryParse(setincome['income']);
+      //         print("refresh the income");
+      //         await resetandstore(spend ?? 0.0, total ?? 0.0);
+      //       }
+      //     } else if (entry['salaryType'] == 'Yearly') {
+      //       DateTime today = DateTime.now();
+      //       DateTime salaryDate = DateTime.parse(entry['salaryDate']);
+      //       if (today.year == salaryDate.year) {
+      //         spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
+      //         total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+      //         print("it work that yearly ");
+      //       } else {
+      //         spend = 0.0;
+      //         total = double.tryParse(setincome['income']);
+      //         print("refresh the income");
+      //         await resetandstore(spend ?? 0.0, total ?? 0.0);
+      //       }
+      //     }
+      //   }
+      // }
+      for (var entry in income) {
+        if (entry['id'].toString() == user) {
+          print("salary type is");
+          print(entry['salaryType']);
+
+          final lastUpdateStr = await storage.read(
+            key: "lastUpdateDate_${entry['salaryType']}",
+          );
           DateTime now = DateTime.now();
-          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
-          print("lastUpdateStr: $lastUpdateStr");
           DateTime lastUpdate = lastUpdateStr != null
               ? DateTime.parse(lastUpdateStr)
-              : now.subtract(Duration(days: 1));
+              : now.subtract(
+                  Duration(days: 365),
+                );
 
-          if ((now.day != lastUpdate.day ||
-              now.month != lastUpdate.month ||
-              now.year != lastUpdate.year)) {
-            print("Updating daily income for a new day");
-            final gincome = await getincome();
-            total = gincome != null
-                ? (total ?? 0) + double.parse(gincome)
-                : total;
-            spend = 0;
-            await storage.write(key: "spendbudget", value: "0.0");
-            await storage.write(key: "totalbalance", value: total.toString());
-            await storage.write(
-              key: 'lastUpdateDate',
-              value: now.toIso8601String(),
-            );
-          } else {
-            print("it was already updated today");
-            print("Retrieved spendbudget and totalbalance from storage:");
-            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
-            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+          bool shouldReset = false;
+
+          if (entry['salaryType'] == 'Daily') {
+            if (now.day != lastUpdate.day ||
+                now.month != lastUpdate.month ||
+                now.year != lastUpdate.year) {
+              shouldReset = true;
+            }
+          } else if (entry['salaryType'] == 'Weekly') {
+            if (now.difference(lastUpdate).inDays >= 7) {
+              shouldReset = true;
+              print("it will work on weekly");
+            }
+          } else if (entry['salaryType'] == 'Monthly') {
+            if (now.month != lastUpdate.month || now.year != lastUpdate.year) {
+              shouldReset = true;
+              print("it will work on monthly");
+            }
+          } else if (entry['salaryType'] == 'Yearly') {
+            if (now.year != lastUpdate.year) {
+              shouldReset = true;
+            }
           }
-        }
-        if (salaryType == "Yearly") {
-          DateTime now = DateTime.now();
-          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
-          print("lastUpdateStr: $lastUpdateStr");
-          DateTime lastUpdate = lastUpdateStr != null
-              ? DateTime.parse(lastUpdateStr)
-              : now.subtract(Duration(days: 365));
 
-          if (lastUpdate.year != now.year) {
-            final gincome = await getincome();
-            total = double.parse(gincome ?? '0.0');
-            spend = 0;
-            await storage.write(key: "spendbudget", value: "0.0");
-            await storage.write(key: "totalbalance", value: total.toString());
+          if (shouldReset) {
+            spend = 0.0;
+            total = double.tryParse(setincome['income']) ?? 0.0;
+            print("refresh the income for ${entry['salaryType']}");
+            await resetandstore(spend, total);
             await storage.write(
-              key: 'lastUpdateDate',
+              key: "lastUpdateDate_${entry['salaryType']}",
               value: now.toIso8601String(),
             );
           } else {
-            print("Retrieved spendbudget and totalbalance from storage:");
-            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
             spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
             total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+            print("no reset needed for ${entry['salaryType']}");
           }
         }
       }
-      // if (spendStr != null && totalBalStr != null) {
-      //   print("Retrieved spendbudget and totalbalance from storage:");
-      //   print("spendbudget: $spendStr, totalbalance: $totalBalStr");
-      //   spend = double.tryParse(spendStr) ?? 0.0;
-      //   total = double.tryParse(totalBalStr) ?? 0.0;
-      // }
+
       setState(() {
         totalBalance = total ?? 0.0;
         spendbudget = spend;

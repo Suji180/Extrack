@@ -589,8 +589,10 @@ Future<String> getincome() async {
   for (var entry in income) {
     if (entry['id'].toString() == user) {
       print("it sync account salary");
+
       print(entry['salaryAmount'].toString());
       return entry['salaryAmount'].toString();
+      return entry['salaryType'].toString();
     }
   }
   return "null";
