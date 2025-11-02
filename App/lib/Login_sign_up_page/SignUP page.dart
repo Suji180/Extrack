@@ -213,7 +213,7 @@ class SignUpPageState extends State<SignUpPage> {
                           MaterialPageRoute(builder: (context) => SecondPage(
                             email: _emailController.text.trim(),
                             password: _passwordController.text.trim(),
-                            nextPage: MainApp(),
+                            nextPage: LoginPage(),
                             isPasswordReset: false,
                           )),
 
@@ -297,7 +297,7 @@ class SignUpPageState extends State<SignUpPage> {
                         MaterialPageRoute(builder: (context) => const SecondPage(
                           email: '',
                           password: '',
-                          nextPage: MainApp(),
+                          nextPage: LoginPage(),
                           isPasswordReset: false,
                         )),
                       );
