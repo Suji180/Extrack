@@ -68,7 +68,7 @@ Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
 
 Future<Map<String, dynamic>?> localcached() async {
   final income = await getincome();
-  if (income != null) {
+  if (income.toString() != "null") {
     print("Income from local cache: $income");
     final callincome = await getExpenses();
     double parsedAmount = 0.0;
@@ -82,6 +82,7 @@ Future<Map<String, dynamic>?> localcached() async {
           value = account.toDouble();
         } else {
           print('cached expense has unsupported type');
+          continue;
         }
         parsedAmount += value;
         print('cached expense parsed amount: $parsedAmount');
@@ -133,6 +134,7 @@ class _HomepageState extends ConsumerState<Homepage> {
     if (setincome != null && setincome['income'] != null) {
       double? total = double.tryParse(setincome['income']);
       double spend = 0.0;
+      print("IF BLOCK EXECUTED");
 
       if (setincome['budget'] != null) {
         spend = double.tryParse(setincome['budget']) ?? 0.0;
@@ -407,9 +409,15 @@ class _HomepageState extends ConsumerState<Homepage> {
           ),
 
           actions: [
-            MaterialButton(onPressed:()=> add(context), child: const Text('Add')),
+            MaterialButton(
+              onPressed: () => add(context),
+              child: const Text('Add'),
+            ),
 
-            MaterialButton(onPressed:()=> cancel(context), child: const Text('Cancel ')),
+            MaterialButton(
+              onPressed: () => cancel(context),
+              child: const Text('Cancel '),
+            ),
           ],
         );
       },
@@ -588,7 +596,8 @@ class _HomepageState extends ConsumerState<Homepage> {
           _pickedImage!.path,
         );
       } else if (!newexpenseAmountController.text.isEmpty &&
-          !newexpenseNameController.text.isEmpty && _pickedImage != null) {
+          !newexpenseNameController.text.isEmpty &&
+          _pickedImage != null) {
         final storage = FlutterSecureStorage();
         String? user = await storage.read(key: 'userid');
         if (user == null) return;
