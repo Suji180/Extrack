@@ -1,5 +1,4 @@
 library my_globals;
-
 import 'dart:ffi';
 import 'dart:math' as math;
 import 'package:extrack/salary.dart';

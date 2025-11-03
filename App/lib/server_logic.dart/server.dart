@@ -13,6 +13,7 @@ import 'package:path/path.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:math';
 
 late StreamSubscription subscription;
 
@@ -253,7 +254,7 @@ Future<void> postincomelocaldata() async {
 
 Future<void> postlocaldata() async {
   final expense = await formattedExpenses();
-  if(expense.isEmpty){
+  if (expense.isEmpty) {
     print("no expense is pending");
     return;
   }
@@ -348,12 +349,35 @@ Future<void> otpverify(
   }
 }
 
+int generaterandomnumber() {
+  final random = Random();
+  return 10000000 + random.nextInt(90000000);
+}
+
+const storage = FlutterSecureStorage();
+Future<String> getOrCreateDeviceId() async {
+  String? deviceId = await storage.read(key: 'device_id');
+  if (deviceId == null) {
+    final randomId = generaterandomnumber().toString();
+    await storage.write(key: 'device_id', value: randomId);
+    deviceId = randomId;
+    print("successfully created device id $deviceId. it is fresh account ");
+  }
+  print("successfully created device id $deviceId. it is no fresh account ");
+
+  return deviceId;
+}
+
 Future<void> getuser(String email, String password) async {
   try {
+    final device_id = await getOrCreateDeviceId();
     final url = Uri.parse("http://10.0.2.2:8000/login");
     final response = await http.post(
       url,
-      headers: {'Content-type': 'application/json'},
+      headers: {
+        'Content-type': 'application/json',
+        'Authorization': 'Bearer$device_id',
+      },
       body: jsonEncode({'email': email, 'password': password}),
     );
     if (response.statusCode == 200 ||
