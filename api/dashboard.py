@@ -41,14 +41,17 @@ jwt_secret_key = os.getenv("JWT_SECRET_KEY")
 jwt_algorithm = os.getenv("JWT_ALGORITHM")
 
 def get_user_id(jwt_token):
-    data = jwt.decode(
-        jwt_token,
-        jwt_secret_key,
-        algorithms = [jwt_algorithm]
-    )
+    try:
+        data = jwt.decode(
+            jwt_token,
+            jwt_secret_key,
+            algorithms = [jwt_algorithm]
+        )
 
-    uid = data.get("sub")
-    print(uid)
+        uid = data.get("sub")
+        print(uid)
 
-    return uid
+        return uid
+    except jwt.exceptions.InvalidTokenError as e:
+        raise HTTPException(status_code=500, detail= "Token decode error : {e}")
 

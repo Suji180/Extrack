@@ -70,7 +70,7 @@ async def sync_income(sync: Income, conn = Depends(get_connection), auth = Heade
         except asyncpg.PostgresError as e:
             raise HTTPException(status_code= 500, detail= f"DB Error : {e}")
 
-@load.get("/get_expenses")
+@load.get("/full_sync")
 async def get_expenses(conn = Depends(get_connection), auth = Header(None, alias = "Authorization")):
     if not auth or not auth.startswith("Bearer "):
         raise HTTPException(status_code= 401, detail= "Unauthorized Auth code or Auth code should start with (Bearer )")
@@ -86,15 +86,26 @@ async def get_expenses(conn = Depends(get_connection), auth = Header(None, alias
     try:
         expenses = await conn.fetch("SELECT id, category, amount FROM expenses WHERE id = $1 AND added_date = $2", 
                               uid, current_date)
-        all_expenses = [{
-            "id": item['id'],
-            "category": item['category'],
-            "amount": item['amount']
-        }
-        for item in expenses
-        ]
+        income = await conn.fetchrow("SELECT id, type, amount, date FROM dashboard WHERE id = $1", uid)
 
-        return {"Message": "Got All today expenses", "Expenses": all_expenses}
+        if expenses and income:
+            all_expenses = [{
+                "id": item['id'],
+                "category": item['category'],
+                "amount": item['amount']
+            }
+            for item in expenses
+            ]
+            income_data = {
+                "id": income['id'],
+                "type": income['type'],
+                "amount": income['amount'],
+                "date": income['date']
+            }
+
+            return {"Message": "Got All today expenses", "Expenses": all_expenses, "Income": income_data}
+        else:
+            raise HTTPException(status_code= 404, detail= "No data available for this user. It's an new user")
 
     except asyncpg.PostgresError as e:
         raise HTTPException(status_code= 500, detail= f"DB Error : {e}")

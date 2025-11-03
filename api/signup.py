@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter, status
+from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter, status, Header
 import asyncpg
 from basemodel import Signup, Login, glogin, otp, forget_pass, submit_otp, new_pass
 from db import get_connection
@@ -13,6 +13,7 @@ import random
 import requests
 import jwt
 from datetime import datetime, timezone, timedelta
+from dashboard import get_user_id
 
 load_dotenv()
 load = APIRouter()
@@ -95,7 +96,7 @@ async def send_otp(email, web_hook_url, conn):
         print(f"Error when making the post request : {e}")
 
 @load.post("/login", status_code=202)
-async def login(user: Login, conn = Depends(get_connection)):
+async def login(user: Login, conn = Depends(get_connection), uuid = Header(None, alias = "Device_id")):
     passwd = user.password
     try:
         content = await conn.fetchrow("SELECT id, email_id, passwd FROM users WHERE email_id = $1", user.email,)
@@ -110,9 +111,20 @@ async def login(user: Login, conn = Depends(get_connection)):
         jwt_token = create_jwt_for_nuser(uid, email_id)
         print(jwt_token)
 
-        return {"session_token": jwt_token, "username": user.email}
-    
+        if not uuid or not uuid.startswith("Bearer "):
+            raise HTTPException(status_code= 401, detail= "Invalid Device_uuid received")
+        uuid = uuid.split(" ")[1]
+        uuid = int(uuid)
+        
+        ex_uuid = await conn.fetchrow("SELECT device_uuid FROM user_devices WHERE uid = $1 AND device_uuid = $2", uid, uuid)
+        if not ex_uuid:
+            await conn.execute("INSERT INTO user_devices (uid, device_uuid) VALUES ($1, $2)", uid, uuid)
+            return {"session_token": jwt_token, "username": user.email, "status": "true"}
+        elif ex_uuid == uuid:
+            return {"session_token": jwt_token, "username": user.email, "status": "false"}
+  
     except asyncpg.PostgresError as e:
+        print(f"DB Error : {e}")
         raise HTTPException(status_code = 500, detail = f"{e}")
 
 
@@ -127,8 +139,7 @@ AUTH_URI = "https://accounts.google.com/o/oauth2/auth"
 def exchange_code(auth_code: str):
     print("Auth_code after function call:", auth_code)
     if not auth_code:
-        return {"Error": "Missing Auth code"}, 400
-    
+        raise HTTPException(status_code= 401, detail= "Auth code not found")
     try:
         flow = Flow.from_client_config(
             {
@@ -156,8 +167,7 @@ def exchange_code(auth_code: str):
         access_token = tokens.token
 
         if not id_token_jwt:
-            return {"Message": "Failed to get the id_token from Google"}, 500
-        
+            raise HTTPException(status_code= 500, detail= "id_token not found")
         user_data = id_token.verify_oauth2_token(
             id_token_jwt,
             g_requests.Request(),
@@ -200,7 +210,7 @@ def create_jwt_for_guser(username: str, user_id: str, email: str) -> str:
     return encoded_jwt
 
 @load.post("/glogin", status_code=201)
-async def google_login(token: glogin, conn = Depends(get_connection)):
+async def google_login(token: glogin, conn = Depends(get_connection), uuid = Header(None, alias = "Device_id")):
     auth_code = token.AuthCode
     print("Auth_code:", auth_code)
     try:
@@ -221,13 +231,26 @@ async def google_login(token: glogin, conn = Depends(get_connection)):
                            user_id, name, email_id, refresh_token
                         )
         
-        custom_jwt = create_jwt_for_guser(username = name, user_id = user_id, email = email_id)
+        jwt_token = create_jwt_for_guser(username = name, user_id = user_id, email = email_id)
 
-        name = get_user_name(custom_jwt)
+        name = get_user_name(jwt_token)
         print(name)
-        return {"session_token": custom_jwt, "username": name}
+        uid = get_user_id(jwt_token)
+
+        if not uuid or not uuid.startswith("Bearer "):
+            raise HTTPException(status_code= 401, detail= "Invalid Device_uuid provieded")
+        
+        uuid = int(uuid.split(" ")[1])
+
+        ex_uuid = await conn.fetchrow("SELECT device_uuid FROM user_devices WHERE uid = $1 AND device_uuid = $2", uid, uuid)
+        if not ex_uuid:
+            await conn.execute("INSERT INTO user_devices (uid, device_uuid) VALUES ($1, $2)", uid, uuid)
+            return {"session_token": jwt_token, "username": name, "status": "true"}
+        elif ex_uuid == uuid:
+            return {"session_token": jwt_token, "username": name, "status": "false"}            
 
     except asyncpg.PostgresError as e:
+        print(f"DB Error : {e}")
         raise HTTPException(status_code = 500, detail= f"{e}")
     
 def create_jwt_for_nuser(user_id: str, email_id: str) -> str:
@@ -271,10 +294,11 @@ def get_user_name(jwt_token):
 @load.post("/forget_password", status_code=200)
 async def forget_password(user: forget_pass, conn = Depends(get_connection)):
     email = user.email
-    otp_sent =  await send_otp(email, WEB_HOOK, conn)
-
-    if otp_sent:
+    try:
+        await send_otp(email, WEB_HOOK, conn)
         return {"Message": "OTP Sent Successfully ..."}
+    except Exception as e:
+        raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in sending OTP : {e}")
 
 
 @load.post("/submit_otp", status_code=202)
