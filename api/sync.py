@@ -66,7 +66,7 @@ async def sync_income(sync: Income, conn = Depends(get_connection), auth = Heade
             await conn.execute("INSERT INTO dashboard (id, type, amount, date) VALUES ($1, $2, $3, $4)", 
                          uid, sync.salaryType, sync.salaryAmount, sync.salaryDate)
             
-            return {"Message": "Income synced successfully", "Status": f"Income Synced for user {uid}"}
+            return {"Message": "Income synced successfully", "synced_id": uid}
         except asyncpg.PostgresError as e:
             raise HTTPException(status_code= 500, detail= f"DB Error : {e}")
 
