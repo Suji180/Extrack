@@ -61,7 +61,8 @@ Future<void> _onCreate(Database db, int version) async {
     id TEXT ,
     salaryType TEXT,
     salaryAmount INTEGER DEFAULT null,
-    salaryDate TEXT
+    salaryDate TEXT,
+    status TEXT DEFAULT 'pending'
     )
   ''');
   print("✅ Income table created!");
@@ -144,6 +145,8 @@ void connectionlistener() async {
         result == ConnectivityResult.ethernet) {
       print("Device is online. Syncing local data with server...");
       postlocaldata();
+      postincomelocaldata();
+
     } else {
       print("Device is offline.");
     }
@@ -179,6 +182,56 @@ Future<List<Map<String, dynamic>>> formattedExpenses() async {
       .toList();
 
   return pendingExpenses;
+}
+
+Future<List<Map<String, dynamic>>> formattedIncome() async {
+  final incomes = await getIncome();
+  List<Map<String, dynamic>> pendingincomes = incomes
+      .where((exp) => exp['status'] == 'pending')
+      .map((income) {
+        return {
+          'user_id': income['id'].toString(),
+          'salaryType': income['salaryType'].toString(),
+          'salaryAmount': income['salaryAmount'].toString(),
+          'salaryDate': income['salaryDate'].toString(),
+        };
+      })
+      .toList();
+  print("pending incomes is $pendingincomes");
+  return pendingincomes;
+}
+
+Future<void> postincomelocaldata() async {
+  final incomes = await formattedIncome();
+  final storage = FlutterSecureStorage();
+  final String? token = await gettoken();
+  if (token == null) {
+    print("no token found in local storage");
+    return;
+  }
+  final user = await storage.read(key: "userid");
+  for (final income in incomes) {
+    if (user == income['user_id']) {
+      try {
+        final url = Uri.parse("http://10.0.2.2:8000/sync_income");
+        final response = await http.post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-type': 'application/json',
+          },
+          body: jsonEncode(income),
+        );
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          print("it successfully send the data in db");
+        } else {
+          print("Failed to sync income");
+        }
+      } catch (e) {
+        print("Error syncing local data: $e");
+      }
+    }
+  }
 }
 
 Future<void> postlocaldata() async {
