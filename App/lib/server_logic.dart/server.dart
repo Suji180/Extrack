@@ -146,7 +146,6 @@ void connectionlistener() async {
       print("Device is online. Syncing local data with server...");
       postlocaldata();
       postincomelocaldata();
-
     } else {
       print("Device is offline.");
     }
@@ -166,6 +165,16 @@ Future<void> updatestatus(
     whereArgs: [id, category, amount],
   );
   print("Expense with id $id marked as synced in local database.");
+}
+
+Future<void> updateincomestatus(Database db, String id) async {
+  await db.update(
+    DatabaseHelper._tablename3,
+    {'status': 'synced'},
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+  print("income with $id marked as synced in local database");
 }
 
 Future<List<Map<String, dynamic>>> formattedExpenses() async {
@@ -203,12 +212,18 @@ Future<List<Map<String, dynamic>>> formattedIncome() async {
 
 Future<void> postincomelocaldata() async {
   final incomes = await formattedIncome();
+  print("after format income $incomes");
+  if (incomes.isEmpty) {
+    print("No pending incomes to sync.");
+    return;
+  }
   final storage = FlutterSecureStorage();
   final String? token = await gettoken();
   if (token == null) {
     print("no token found in local storage");
     return;
   }
+
   final user = await storage.read(key: "userid");
   for (final income in incomes) {
     if (user == income['user_id']) {
@@ -224,6 +239,8 @@ Future<void> postincomelocaldata() async {
         );
         if (response.statusCode == 200 || response.statusCode == 201) {
           print("it successfully send the data in db");
+          final db = await DatabaseHelper().database;
+          await updateincomestatus(db, income['user_id']);
         } else {
           print("Failed to sync income");
         }
@@ -236,6 +253,10 @@ Future<void> postincomelocaldata() async {
 
 Future<void> postlocaldata() async {
   final expense = await formattedExpenses();
+  if(expense.isEmpty){
+    print("no expense is pending");
+    return;
+  }
   print("Posting local data to server: $expense");
 
   final String? token = await gettoken();
