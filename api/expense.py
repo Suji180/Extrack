@@ -4,6 +4,7 @@ import asyncpg
 import os
 from db import get_connection
 from dashboard import get_user_id
+from datetime import date
 
 load = APIRouter()
 
@@ -22,10 +23,16 @@ async def add_expense(category: str = Form(...), amount: str = Form(...), receip
         raise HTTPException(status_code= 401, detail= "The Auth jwt token must be start with the format 'Bearer token'")
     
     jwt_token = auth.split(" ")[1]
-    uid = get_user_id(jwt_token)
-
     try:
-        await conn.execute("INSERT INTO expenses (id, category, amount, receipt) VALUES ($1, $2, $3, $4)", uid, category, amount, receipt)
+        uid = get_user_id(jwt_token)
+        uid = int(uid)
+    except Exception as e:
+        raise HTTPException(status_code= 401, detail= f"Invald JWT or JWT Expired {e}")
+    # current_date = date.today()
+    try:
+        await conn.execute("INSERT INTO expenses (id, category, amount, receipt) VALUES ($1, $2, $3, $4)", 
+                           uid, category, amount, receipt)
+        # await conn.execute("DELETE FROM expenses WHERE uid = $1 AND added_date < $2", uid, current_date)
 
         file_location = os.path.join(directory, image.filename)
         with open(file_location, "wb") as buffer:

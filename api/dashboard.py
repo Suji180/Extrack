@@ -17,7 +17,11 @@ async def income(add: Income, conn = Depends(get_connection), auth: str = Header
         raise HTTPException(status_code=401, detail= "Auth header must be provided in Bearer token format")
     
     jwt_token = auth.split(" ")[1]
-    uid = get_user_id(jwt_token)
+    try:
+        uid = get_user_id(jwt_token)
+        uid = int(uid)
+    except Exception as e:
+        raise HTTPException(status_code= 401, detail= f"Invald JWT or JWT Expired {e}")
     print(f"Type: {add.salaryType}")
     print(f"Amount: {add.salaryAmount}")
     print(f"Date: {add.salaryDate}")
