@@ -1,4 +1,5 @@
 library my_globals;
+
 import 'dart:ffi';
 import 'dart:math' as math;
 import 'package:extrack/salary.dart';
@@ -166,9 +167,7 @@ class _HomepageState extends ConsumerState<Homepage> {
           DateTime now = DateTime.now();
           DateTime lastUpdate = lastUpdateStr != null
               ? DateTime.parse(lastUpdateStr)
-              : now.subtract(
-                  Duration(days: 365),
-                );
+              : now.subtract(Duration(days: 365));
 
           bool shouldReset = false;
 
@@ -560,6 +559,12 @@ class _HomepageState extends ConsumerState<Homepage> {
           'receipt': newreceiptNameController.text,
           'imagePath': _pickedImage?.path ?? '',
         };
+        await postexpenses(
+          newexpenseNameController.text,
+          newexpenseAmountController.text,
+          newreceiptNameController.text,
+          _pickedImage!.path,
+        );
 
         await addExpenses(expense);
 
