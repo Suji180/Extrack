@@ -87,8 +87,9 @@ async def get_expenses(conn = Depends(get_connection), auth = Header(None, alias
         expenses = await conn.fetch("SELECT id, category, amount FROM expenses WHERE id = $1 AND added_date = $2", 
                               uid, current_date)
         income = await conn.fetchrow("SELECT id, type, amount, date FROM dashboard WHERE id = $1", uid)
-
-        if expenses and income:
+        print(income)
+        print(expenses)
+        if income or expenses:
             all_expenses = [{
                 "id": item['id'],
                 "category": item['category'],
@@ -110,28 +111,28 @@ async def get_expenses(conn = Depends(get_connection), auth = Header(None, alias
     except asyncpg.PostgresError as e:
         raise HTTPException(status_code= 500, detail= f"DB Error : {e}")
     
-@load.get("/get_income")
-async def get_income(conn = Depends(get_connection), auth = Header(None, alias = "Authorization")):
-    if not auth or not auth.startswith("Bearer "):
-        raise HTTPException(status_code= 401, detail= "The Auth code id invalid or Auth code must starts with (Bearer )")
+# @load.get("/get_income")
+# async def get_income(conn = Depends(get_connection), auth = Header(None, alias = "Authorization")):
+#     if not auth or not auth.startswith("Bearer "):
+#         raise HTTPException(status_code= 401, detail= "The Auth code id invalid or Auth code must starts with (Bearer )")
     
-    jwt_token = auth.split(" ")[1]
-    try:
-        uid = get_user_id(jwt_token)
-        uid = int(uid)
-    except Exception as e:
-        raise HTTPException(status_code= 401, detail= f"Invald JWT or JWT Expired {e}")
+#     jwt_token = auth.split(" ")[1]
+#     try:
+#         uid = get_user_id(jwt_token)
+#         uid = int(uid)
+#     except Exception as e:
+#         raise HTTPException(status_code= 401, detail= f"Invald JWT or JWT Expired {e}")
     
-    try:
-        income = await conn.fetchrow("SELECT id, type, amount, date FROM dashboard WHERE id = $1", uid)
-        income_data = {
-            "id": income['id'],
-            "type": income['type'],
-            "amount": income['amount'],
-            "date": income['date']
-        }
+#     try:
+#         income = await conn.fetchrow("SELECT id, type, amount, date FROM dashboard WHERE id = $1", uid)
+#         income_data = {
+#             "id": income['id'],
+#             "type": income['type'],
+#             "amount": income['amount'],
+#             "date": income['date']
+#         }
 
-        return {"Message": "Income retrived successfully", "Income Data": income_data}
+#         return {"Message": "Income retrived successfully", "Income Data": income_data}
     
-    except asyncpg.PostgresError as e:
-        raise HTTPException(status_code= 500, detail= f"DB Error : [e]")
+#     except asyncpg.PostgresError as e:
+#         raise HTTPException(status_code= 500, detail= f"DB Error : [e]")

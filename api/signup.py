@@ -29,6 +29,7 @@ async def signup(user: Signup, conn = Depends(get_connection)):
             return {"Message": "OTP sent successfully"}
 
     except Exception as e:
+        print(f"Error : {e}")
         raise HTTPException(status_code= status.HTTP_400_BAD_REQUEST, detail= "OTP Not sent")
     
 @load.post("/otp", status_code=202)
@@ -73,7 +74,11 @@ async def send_otp(email, web_hook_url, conn):
     hashed_otp  = hash_otp.decode('utf-8')
     otp = int(otp)
 
-    await conn.execute("INSERT INTO user_otps (hashed_otp, created_at, email_id) VALUES ($1, $2, $3)", hashed_otp, gen_time, email)
+    try:
+        await conn.execute("INSERT INTO user_otps (hashed_otp, created_at, email_id) VALUES ($1, $2, $3)", hashed_otp, gen_time, email)
+    except asyncpg.Error as e:
+        print(f"DB Error : {e}")
+        raise HTTPException(status_code= 500, detail= f"DB Error : {e}")
 
     payload = {
         "email":email,
@@ -93,6 +98,7 @@ async def send_otp(email, web_hook_url, conn):
             return {"Message": "N8N Failed"}
         
     except Exception as e:
+        print(f"Error : {e}")
         print(f"Error when making the post request : {e}")
 
 @load.post("/login", status_code=202)
@@ -115,13 +121,19 @@ async def login(user: Login, conn = Depends(get_connection), uuid = Header(None,
             raise HTTPException(status_code= 401, detail= "Invalid Device_uuid received")
         uuid = uuid.split(" ")[1]
         uuid = int(uuid)
+        print(uid)
+        print(uuid)
         
         ex_uuid = await conn.fetchrow("SELECT device_uuid FROM user_devices WHERE uid = $1 AND device_uuid = $2", uid, uuid)
+        print(ex_uuid)
         if not ex_uuid:
             await conn.execute("INSERT INTO user_devices (uid, device_uuid) VALUES ($1, $2)", uid, uuid)
-            return {"session_token": jwt_token, "username": user.email, "status": "true"}
-        elif ex_uuid == uuid:
-            return {"session_token": jwt_token, "username": user.email, "status": "false"}
+            return {"session_token": jwt_token, "username": user.email, "status": True}
+        print(ex_uuid[0])
+        print(uuid)
+        if ex_uuid[0] == uuid:
+            print("If working")
+            return {"session_token": jwt_token, "username": user.email, "status": False}
   
     except asyncpg.PostgresError as e:
         print(f"DB Error : {e}")
@@ -245,9 +257,9 @@ async def google_login(token: glogin, conn = Depends(get_connection), uuid = Hea
         ex_uuid = await conn.fetchrow("SELECT device_uuid FROM user_devices WHERE uid = $1 AND device_uuid = $2", uid, uuid)
         if not ex_uuid:
             await conn.execute("INSERT INTO user_devices (uid, device_uuid) VALUES ($1, $2)", uid, uuid)
-            return {"session_token": jwt_token, "username": name, "status": "true"}
-        elif ex_uuid == uuid:
-            return {"session_token": jwt_token, "username": name, "status": "false"}            
+            return {"session_token": jwt_token, "username": name, "status": True}
+        elif ex_uuid[0] == uuid:
+            return {"session_token": jwt_token, "username": name, "status": False}            
 
     except asyncpg.PostgresError as e:
         print(f"DB Error : {e}")

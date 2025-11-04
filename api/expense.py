@@ -13,7 +13,7 @@ if not os.path.exists(directory):
     os.makedirs(directory)
 
 @load.post("/add")
-async def add_expense(category: str = Form(...), amount: str = Form(...), receipt: str = Form(...),
+async def add_expense(category: str = Form(...), amount: int = Form(...), receipt: str = Form(...),
                     conn = Depends(get_connection), image: UploadFile = File(...), auth = Header(None, alias = "Authorization")):
     
     print(category)
@@ -29,6 +29,8 @@ async def add_expense(category: str = Form(...), amount: str = Form(...), receip
     except Exception as e:
         raise HTTPException(status_code= 401, detail= f"Invald JWT or JWT Expired {e}")
     # current_date = date.today()
+    # month = current_date.strftime("%b")
+    # print(month)
     try:
         await conn.execute("INSERT INTO expenses (id, category, amount, receipt) VALUES ($1, $2, $3, $4)", 
                            uid, category, amount, receipt)
@@ -42,5 +44,6 @@ async def add_expense(category: str = Form(...), amount: str = Form(...), receip
         return {"Message": "Expense added successfully"}
 
     except asyncpg.PostgresError as error:
+        print(f"DB Error : {error}")
         raise HTTPException(status_code = 500, detail = f"MySQL Error : {error}")
 

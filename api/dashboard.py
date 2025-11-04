@@ -52,6 +52,7 @@ def get_user_id(jwt_token):
         print(uid)
 
         return uid
-    except jwt.exceptions.InvalidTokenError as e:
-        raise HTTPException(status_code=500, detail= "Token decode error : {e}")
+    except jwt.exceptions.ExpiredSignatureError as e:
+        print(f"Token Expired : {e}")
+        raise HTTPException(status_code=500, detail= f"Token Expired : {e}")
 
