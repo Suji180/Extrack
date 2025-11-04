@@ -371,12 +371,13 @@ Future<String> getOrCreateDeviceId() async {
 Future<void> getuser(String email, String password) async {
   try {
     final Device_id = await getOrCreateDeviceId();
+    print(Device_id);
     final url = Uri.parse("http://10.0.2.2:8000/login");
     final response = await http.post(
       url,
       headers: {
         'Content-type': 'application/json',
-        'device_id': 'Bearer $Device_id',
+        'Device_id': 'Bearer $Device_id',
       },
       body: jsonEncode({'email': email, 'password': password}),
     );
@@ -406,12 +407,11 @@ Future<void> getuser(String email, String password) async {
   }
 }
 
-Future<List<Map<String, dynamic>>> getfullbackup() async {
+Future <void> getfullbackup() async {
   try {
     final String? token = await gettoken();
     if (token == null) {
       print("No valid token found. Cannot sync data.");
-      return [];
     }
     final url = Uri.parse("http://10.0.2.2:8000/full_sync");
     final response = await http.get(
@@ -423,19 +423,14 @@ Future<List<Map<String, dynamic>>> getfullbackup() async {
         response.statusCode == 404) {
       final data = jsonDecode(response.body);
       print("backup $data");
-      if (data is List) {
-        return data.cast<Map<String, dynamic>>();
-      } else {
-        print("Unexpected data format: $data");
-        return [];
-      }
+      print(data['Income']);
+      await saveIncome(data['Income']);
+
     } else {
       print("no backup");
-      return [];
     }
   } catch (e) {
     print("the error is $e");
-    return [];
   }
 }
 
