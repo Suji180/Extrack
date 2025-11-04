@@ -376,7 +376,7 @@ Future<void> getuser(String email, String password) async {
       url,
       headers: {
         'Content-type': 'application/json',
-        'Authorization': 'Bearer $Device_id',
+        'device_id': 'Bearer $Device_id',
       },
       body: jsonEncode({'email': email, 'password': password}),
     );
@@ -408,8 +408,16 @@ Future<void> getuser(String email, String password) async {
 
 Future<List<Map<String, dynamic>>> getfullbackup() async {
   try {
+    final String? token = await gettoken();
+    if (token == null) {
+      print("No valid token found. Cannot sync data.");
+      return [];
+    }
     final url = Uri.parse("http://10.0.2.2:8000/full_sync");
-    final response = await http.get(url);
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $token'},
+    );
     if (response.statusCode == 200 ||
         response.statusCode == 201 ||
         response.statusCode == 404) {
