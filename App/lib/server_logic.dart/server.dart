@@ -51,9 +51,9 @@ Future<void> _onCreate(Database db, int version) async {
     id TEXT ,
     category TEXT,
     amount Interger,
-    date TEXT,
-    receipt TEXT,
-    imagePath TEXT,
+    date TEXT ,
+    receipt TEXT DEFAULT null,
+    imagePath TEXT DEFAULT null,
     status TEXT DEFAULT 'pending' 
   )
   ''');
@@ -426,7 +426,15 @@ Future<void> getfullbackup() async {
       print("backup $data");
       print(data['Income']);
       await saveIncome(data['Income']);
-      await addExpenses(data['Expenses']);
+      print("the expense is ${data['Expenses']}");
+      final expenses = data['Expenses'];
+      if (expenses is List) {
+        for (var expense in expenses) {
+          await addExpenses(Map<String, dynamic>.from(expense));
+        }
+      } else {
+        print("no it is list");
+      }
     } else {
       print("no backup");
     }
