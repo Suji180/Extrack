@@ -185,6 +185,7 @@ Future<List<Map<String, dynamic>>> formattedExpenses() async {
       .map((expense) {
         return {
           'local_id': expense['id'].toString(),
+          'date': expense['date'].toString(),
           'category': expense['category'],
           'amount': expense['amount'],
         };
@@ -407,7 +408,7 @@ Future<void> getuser(String email, String password) async {
   }
 }
 
-Future <void> getfullbackup() async {
+Future<void> getfullbackup() async {
   try {
     final String? token = await gettoken();
     if (token == null) {
@@ -425,7 +426,6 @@ Future <void> getfullbackup() async {
       print("backup $data");
       print(data['Income']);
       await saveIncome(data['Income']);
-
     } else {
       print("no backup");
     }

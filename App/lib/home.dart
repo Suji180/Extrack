@@ -509,6 +509,10 @@ class _HomepageState extends ConsumerState<Homepage> {
 
   void add(BuildContext context) async {
     Navigator.of(context).pop();
+    final now = DateTime.now();
+    final formattedDate =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
     print("it works");
     setState(() {
       isLoading = true;
@@ -529,7 +533,7 @@ class _HomepageState extends ConsumerState<Homepage> {
           'id': user,
           'category': data != null ? data['category'] : 'Uncategorized',
           'amount': data != null ? data['amount'] : 0,
-          'date': DateTime.now().toIso8601String(),
+          'date': formattedDate,
           'receipt': newreceiptNameController.text.isEmpty
               ? ''
               : newreceiptNameController.text,
@@ -555,7 +559,7 @@ class _HomepageState extends ConsumerState<Homepage> {
           'id': user,
           'category': newexpenseNameController.text,
           'amount': newexpenseAmountController.text,
-          'date': DateTime.now().toIso8601String(),
+          'date': formattedDate,
           'receipt': newreceiptNameController.text,
           'imagePath': _pickedImage?.path ?? '',
         };
