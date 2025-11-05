@@ -425,6 +425,10 @@ class _HomepageState extends ConsumerState<Homepage> {
   final String URL =
       'https://saroo.app.n8n.cloud/webhook/e73d38f1-8e13-40e4-984a-538e234367ab';
   Future<bool> sendAudioToN8N(String? path) async {
+    final now = DateTime.now();
+    final formattedDate =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}}";
+    final storage = FlutterSecureStorage();
     if (path != null) {
       final File audiofile = File(path);
       if (!await audiofile.exists()) {
@@ -446,7 +450,9 @@ class _HomepageState extends ConsumerState<Homepage> {
         final response = await request.send();
         final result = await response.stream.bytesToString();
 
-        if (response.statusCode == 200) {
+        if (response.statusCode == 200 ||
+            response.statusCode == 201 ||
+            response.statusCode == 202) {
           print("Sent success");
           print('$result');
           var jsonResponse = json.decode(result);
@@ -464,16 +470,22 @@ class _HomepageState extends ConsumerState<Homepage> {
           } else {
             print("Category: ${actualData["category"]}");
             print("Amount: ${actualData["amount"]}");
+            String? user = await storage.read(key: 'userid');
+            print("user add expense: $user");
+            if (user == null) {
+              print("No user found, so cannot add expense with session token");
+            }
             final updateexpense = {
-              'name': actualData["category"] ?? 'Uncategorized',
+              'id': user,
+              'category': actualData["category"] ?? 'Uncategorized',
               'amount': actualData["amount"] ?? 0,
-              'date': DateTime.now().toIso8601String(),
+              'date': formattedDate,
               'receiptname': newreceiptNameController.text,
               'imagePath': '',
             };
             final updateexpenseList = [updateexpense];
+            await addExpenses(updateexpense);
             print("updated expense to save:$updateexpenseList");
-            // await saveExpensewithexpiry(updateexpenseList);
             await addui(ref);
             await loadLocalData();
             await postexpenses(

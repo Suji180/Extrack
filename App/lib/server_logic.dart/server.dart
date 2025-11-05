@@ -426,6 +426,7 @@ Future<void> getfullbackup() async {
       print("backup $data");
       print(data['Income']);
       await saveIncome(data['Income']);
+      await addExpenses(data['Expenses']);
     } else {
       print("no backup");
     }
