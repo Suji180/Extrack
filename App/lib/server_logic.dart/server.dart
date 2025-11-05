@@ -13,6 +13,7 @@ import 'package:path/path.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:math';
 
 late StreamSubscription subscription;
 
@@ -61,7 +62,8 @@ Future<void> _onCreate(Database db, int version) async {
     id TEXT ,
     salaryType TEXT,
     salaryAmount INTEGER DEFAULT null,
-    salaryDate TEXT
+    salaryDate TEXT,
+    status TEXT DEFAULT 'pending'
     )
   ''');
   print("✅ Income table created!");
@@ -144,6 +146,7 @@ void connectionlistener() async {
         result == ConnectivityResult.ethernet) {
       print("Device is online. Syncing local data with server...");
       postlocaldata();
+      postincomelocaldata();
     } else {
       print("Device is offline.");
     }
@@ -165,6 +168,16 @@ Future<void> updatestatus(
   print("Expense with id $id marked as synced in local database.");
 }
 
+Future<void> updateincomestatus(Database db, String id) async {
+  await db.update(
+    DatabaseHelper._tablename3,
+    {'status': 'synced'},
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+  print("income with $id marked as synced in local database");
+}
+
 Future<List<Map<String, dynamic>>> formattedExpenses() async {
   final expenses = await getExpenses();
   List<Map<String, dynamic>> pendingExpenses = expenses
@@ -181,8 +194,70 @@ Future<List<Map<String, dynamic>>> formattedExpenses() async {
   return pendingExpenses;
 }
 
+Future<List<Map<String, dynamic>>> formattedIncome() async {
+  final incomes = await getIncome();
+  List<Map<String, dynamic>> pendingincomes = incomes
+      .where((exp) => exp['status'] == 'pending')
+      .map((income) {
+        return {
+          'user_id': income['id'].toString(),
+          'salaryType': income['salaryType'].toString(),
+          'salaryAmount': income['salaryAmount'].toString(),
+          'salaryDate': income['salaryDate'].toString(),
+        };
+      })
+      .toList();
+  print("pending incomes is $pendingincomes");
+  return pendingincomes;
+}
+
+Future<void> postincomelocaldata() async {
+  final incomes = await formattedIncome();
+  print("after format income $incomes");
+  if (incomes.isEmpty) {
+    print("No pending incomes to sync.");
+    return;
+  }
+  final storage = FlutterSecureStorage();
+  final String? token = await gettoken();
+  if (token == null) {
+    print("no token found in local storage");
+    return;
+  }
+
+  final user = await storage.read(key: "userid");
+  for (final income in incomes) {
+    if (user == income['user_id']) {
+      try {
+        final url = Uri.parse("http://10.0.2.2:8000/sync_income");
+        final response = await http.post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-type': 'application/json',
+          },
+          body: jsonEncode(income),
+        );
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          print("it successfully send the data in db");
+          final db = await DatabaseHelper().database;
+          await updateincomestatus(db, income['user_id']);
+        } else {
+          print("Failed to sync income");
+        }
+      } catch (e) {
+        print("Error syncing local data: $e");
+      }
+    }
+  }
+}
+
 Future<void> postlocaldata() async {
   final expense = await formattedExpenses();
+  if (expense.isEmpty) {
+    print("no expense is pending");
+    return;
+  }
   print("Posting local data to server: $expense");
 
   final String? token = await gettoken();
@@ -274,12 +349,36 @@ Future<void> otpverify(
   }
 }
 
+int generaterandomnumber() {
+  final random = Random();
+  return 10000000 + random.nextInt(90000000);
+}
+
+const storage = FlutterSecureStorage();
+Future<String> getOrCreateDeviceId() async {
+  String? deviceId = await storage.read(key: 'device_id');
+  if (deviceId == null) {
+    final randomId = generaterandomnumber().toString();
+    await storage.write(key: 'device_id', value: randomId);
+    deviceId = randomId;
+    print("successfully created device id $deviceId. it is fresh account ");
+  }
+  print("successfully created device id $deviceId. it is no fresh account ");
+
+  return deviceId;
+}
+
 Future<void> getuser(String email, String password) async {
   try {
+    final Device_id = await getOrCreateDeviceId();
+    print(Device_id);
     final url = Uri.parse("http://10.0.2.2:8000/login");
     final response = await http.post(
       url,
-      headers: {'Content-type': 'application/json'},
+      headers: {
+        'Content-type': 'application/json',
+        'Device_id': 'Bearer $Device_id',
+      },
       body: jsonEncode({'email': email, 'password': password}),
     );
     if (response.statusCode == 200 ||
@@ -296,11 +395,42 @@ Future<void> getuser(String email, String password) async {
       insertuser({'id': id, 'username': email});
       print(jsonresponse["username"]);
       await savetoken(jsonresponse["session_token"], jsonresponse["username"]);
+      print(jsonresponse['status']);
+      if (jsonresponse['status']) {
+        await getfullbackup();
+      }
     } else {
       print("not signin ");
     }
   } catch (e) {
     print("error occured $e");
+  }
+}
+
+Future <void> getfullbackup() async {
+  try {
+    final String? token = await gettoken();
+    if (token == null) {
+      print("No valid token found. Cannot sync data.");
+    }
+    final url = Uri.parse("http://10.0.2.2:8000/full_sync");
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200 ||
+        response.statusCode == 201 ||
+        response.statusCode == 404) {
+      final data = jsonDecode(response.body);
+      print("backup $data");
+      print(data['Income']);
+      await saveIncome(data['Income']);
+
+    } else {
+      print("no backup");
+    }
+  } catch (e) {
+    print("the error is $e");
   }
 }
 
@@ -589,8 +719,10 @@ Future<String> getincome() async {
   for (var entry in income) {
     if (entry['id'].toString() == user) {
       print("it sync account salary");
+
       print(entry['salaryAmount'].toString());
       return entry['salaryAmount'].toString();
+      return entry['salaryType'].toString();
     }
   }
   return "null";
