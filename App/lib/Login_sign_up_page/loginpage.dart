@@ -159,12 +159,12 @@ class SecondPageState extends State<LoginPage> {
                         _emailController.text.trim(),
                         _passwordController.text.trim(),
                       );
-                      Navigator.pushReplacement(
+                      Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const MainApp(),
-                        ),
-                      );
+                          builder: (context) => const MainApp()),
+                          (Route<dynamic> route)=>false,
+                        );
                     },
                     // },
                     child: const Text(
