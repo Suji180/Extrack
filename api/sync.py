@@ -82,10 +82,10 @@ async def get_expenses(conn = Depends(get_connection), auth = Header(None, alias
         raise HTTPException(status_code=401, detail= f"Invalid JWT or JWT Expired {e}")
     
     uid = int(uid)
-    current_date = date.today()
+    # current_date = date.today()
     try:
-        expenses = await conn.fetch("SELECT id, category, amount FROM expenses WHERE id = $1 AND added_date = $2", 
-                              uid, current_date)
+        expenses = await conn.fetch("SELECT id, category, amount, added_date FROM expenses WHERE id = $1", 
+                              uid)
         income = await conn.fetchrow("SELECT id, type, amount, date FROM dashboard WHERE id = $1", uid)
         print(income)
         print(expenses)
@@ -93,15 +93,16 @@ async def get_expenses(conn = Depends(get_connection), auth = Header(None, alias
             all_expenses = [{
                 "id": item['id'],
                 "category": item['category'],
-                "amount": item['amount']
+                "amount": item['amount'],
+                "date": item['added_date']
             }
             for item in expenses
             ]
             income_data = {
                 "id": income['id'],
-                "type": income['type'],
-                "amount": income['amount'],
-                "date": income['date']
+                "salaryType": income['type'],
+                "salaryAmount": income['amount'],
+                "salaryDate": income['date']
             }
 
             return {"Message": "Got All today expenses", "Expenses": all_expenses, "Income": income_data}
