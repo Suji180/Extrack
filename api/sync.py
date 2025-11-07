@@ -96,7 +96,7 @@ async def get_expenses(conn = Depends(get_connection), auth = Header(None, alias
             all_expenses = [{
                 "id": str(item['id']),
                 "category": str(item['category']),
-                "amount": item['amount'],
+                "amount": float(item['amount']),
                 "date": item['added_date']
             }
             for item in expenses

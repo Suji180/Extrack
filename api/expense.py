@@ -45,7 +45,7 @@ async def add_expense(category: str = Form(...), amount: float = Form(...), rece
         return {"Message": "Expense added successfully", "Added": {
             "id": str(uid),
             "category": str(category),
-            "amount": amount
+            "amount": (float(amount))
         }}
 
     except asyncpg.PostgresError as error:

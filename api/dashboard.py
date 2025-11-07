@@ -32,7 +32,7 @@ async def income(add: Income, conn = Depends(get_connection), auth: str = Header
                            SET type = EXCLUDED.type, amount = EXCLUDED.amount, date = EXCLUDED.date;
                            """,
                            uid, add.salaryType, add.salaryAmount, add.salaryDate)
-        return {"Message": "The Income added successfully"}
+        return {"Message": "The Income added successfully", "income_id": {"id": str(uid)}}  
 
     except asyncpg.PostgresError as e:
         raise HTTPException(status_code = 500, detail = f"Postgre Error :{e}")
