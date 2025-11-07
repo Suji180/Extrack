@@ -50,9 +50,10 @@ Future<Database> _initDatabase() async {
 Future<void> _onCreate(Database db, int version) async {
   await db.execute('''
   CREATE TABLE ${DatabaseHelper._tablename1}(
+  _pk INTEGER PRIMARY KEY AUTOINCREMENT,
     id TEXT ,
     category TEXT,
-    amount Interger,
+    amount REAL,
     date TEXT ,
     receipt TEXT DEFAULT null,
     imagePath TEXT DEFAULT null,
@@ -159,14 +160,16 @@ Future<void> updatestatus(
   Database db,
   String id,
   String category,
-  int amount,
+  double amount,
 ) async {
-  await db.update(
+  print("the update status data is $db,$id,$category,$amount");
+  var updated = await db.update(
     DatabaseHelper._tablename1,
     {'status': 'synced'},
     where: 'id = ? AND category = ? AND amount = ?',
     whereArgs: [id, category, amount],
   );
+  print("the update is $updated");
   print("Expense with id $id marked as synced in local database.");
 }
 
@@ -426,9 +429,7 @@ Future<bool> getfullbackup() async {
       url,
       headers: {'Authorization': 'Bearer $token'},
     );
-    if (response.statusCode == 200 ||
-        response.statusCode == 201 ||
-        response.statusCode == 404) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
       print("backup $data");
       print(data['Income']);
@@ -455,6 +456,8 @@ Future<bool> getfullbackup() async {
         }
         print("backup process is successfully");
 
+        return true;
+      } else if (response.statusCode == 404) {
         return true;
       } else {
         print("no it is list");
@@ -543,6 +546,7 @@ Future<void> postexpenses(
   String receipt,
   String filepath,
 ) async {
+  final db = await DatabaseHelper().database;
   print("inside post expenses function");
   print(filepath);
   print(receipt);
@@ -566,8 +570,20 @@ Future<void> postexpenses(
     request.fields['receipt'] = receipt;
     request.files.add(await http.MultipartFile.fromPath('image', filepath));
     var response = await request.send();
+    var body = await response.stream.bytesToString();
+    var data = jsonDecode(body);
+    print(data);
+    final expense = data['Added'];
+    print("the is post expense output is $expense");
+
     if (response.statusCode == 200 || response.statusCode == 201) {
       print("Expense added successfully");
+      await updatestatus(
+        db,
+        expense['id'],
+        expense['category'],
+        expense['amount'],
+      );
     } else {
       print("Expense adding failed");
     }
@@ -681,6 +697,7 @@ Future<void> addincome(
       print("No token found. user mat no be logged in or token is expired");
       return;
     }
+    final db = await DatabaseHelper().database;
 
     final url = Uri.parse("http://10.0.2.2:8000/income");
     final response = await http.post(
@@ -698,7 +715,10 @@ Future<void> addincome(
     if (response.statusCode == 200 || response.statusCode == 201) {
       print("Income added Successfully");
       // saveincome(salaryAmount.toString());
-      saveincomedata(salaryType, salaryDate);
+      // saveincomedata(salaryType, salaryDate);
+      final data = jsonDecode(response.body);
+      final income = data['income_id'];
+      await updateincomestatus(db, income['id']);
     } else {
       print("income not added");
     }
@@ -707,14 +727,14 @@ Future<void> addincome(
   }
 }
 
-Future<void> saveincomedata(String salaryType, String salaryDate) async {
-  final storage = FlutterSecureStorage();
-  final String? user = await storage.read(key: 'username');
-  await storage.write(key: 'salaryType$user', value: salaryType);
-  await storage.write(key: 'salaryDate$user', value: salaryDate);
-  print(salaryType);
-  print(salaryDate);
-}
+// Future<void> saveincomedata(String salaryType, String salaryDate) async {
+//   final storage = FlutterSecureStorage();
+//   final String? user = await storage.read(key: 'username');
+//   await storage.write(key: 'salaryType$user', value: salaryType);
+//   await storage.write(key: 'salaryDate$user', value: salaryDate);
+//   print(salaryType);
+//   print(salaryDate);
+// }
 
 // Future<void> saveincome(String income) async {
 //   final storage = FlutterSecureStorage();

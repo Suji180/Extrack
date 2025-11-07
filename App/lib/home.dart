@@ -1,5 +1,6 @@
 library my_globals;
 
+import 'package:intl/intl.dart';
 import 'dart:ffi';
 import 'dart:math' as math;
 import 'package:extrack/salary.dart';
@@ -29,41 +30,86 @@ class Homepage extends ConsumerStatefulWidget {
   ConsumerState<Homepage> createState() => _HomepageState();
 }
 
-Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
-  final storage = FlutterSecureStorage();
-  final now = DateTime.now();
-  print("addui now: $now");
-  final today = DateTime(now.year, now.month, now.day);
-  final expense = await getExpenses();
-  if (expense != null) {
-    print("Expense retrieved from local cache:");
-    print(expense);
+ExpenseItem _mapToExpense(Map<String, dynamic> e) {
+  final raw = (e['date'] ?? '').toString().trim();
+  DateTime? date;
 
-    List<ExpenseItem> todayExpenses = [];
+  date = DateTime.tryParse(raw);
+  print("   ➤ tryParse() result: $date");
 
-    for (var exp in expense) {
-      DateTime expDate = DateTime.parse(exp['date']);
-      print(exp);
-      if (expDate.year == today.year &&
-          expDate.month == today.month &&
-          expDate.day == today.day) {
-        todayExpenses.add(
-          ExpenseItem(
-            name: (exp['category'] ?? '').toString(),
-            amount: (double.tryParse(exp['amount'].toString()) ?? 0.0)
-                .toString(),
-            date: expDate,
-            receiptname: (exp['receipt'] ?? '').toString(),
-          ),
-        );
-      }
+  if (date == null) {
+    try {
+      date = DateFormat('yyyy-MM-dd').parse(raw);
+      print("    DateFormat('yyyy-MM-dd').parse() result: $date");
+    } catch (e) {
+      print("    Failed DateFormat('yyyy-MM-dd').parse()");
     }
-    ref.read(expenseDataProvider.notifier).state = todayExpenses;
-    return expense;
-  } else {
-    print("No valid expense found in local cache or it has expired.");
-    return null;
   }
+
+  // If still failed → log and substitute
+  if (date == null) {
+    print("  INVALID DATE FORMAT → using DateTime(1900)");
+    return ExpenseItem(
+      name: (e['category'] ?? '').toString(),
+      amount: ((e['amount'] as num?)?.toDouble() ?? 0.0),
+      date: DateTime(1900),
+      receiptname: (e['receipt'] ?? '').toString(),
+    );
+  }
+
+  print("Final parsed date: $date\n");
+
+  return ExpenseItem(
+    name: (e['category'] ?? '').toString(),
+    amount: ((e['amount'] as num?)?.toDouble() ?? 0.0),
+    date: date,
+    receiptname: (e['receipt'] ?? '').toString(),
+  );
+}
+
+Future<List<ExpenseItem>> addui(WidgetRef ref) async {
+  final expenses = await getExpenses();
+
+  if (expenses == null || expenses.isEmpty) {
+    print("No valid expense found in local cache or it has expired.");
+    ref.read(expenseDataProvider.notifier).state = [];
+    return [];
+  }
+
+  print("Expense retrieved from local cache:");
+  print(expenses);
+
+  final today = DateTime.now();
+
+  final todayExpenses = expenses
+      .where((e) {
+        final raw = (e['date'] ?? '').toString().trim();
+        print("Comparing raw date: $raw");
+
+        final entryDate = DateTime.tryParse(raw);
+        if (entryDate == null) return false;
+
+        return entryDate.year == today.year &&
+            entryDate.month == today.month &&
+            entryDate.day == today.day;
+      })
+      .map<ExpenseItem>((e) => _mapToExpense(e))
+      .toList();
+
+  final ymd = DateFormat('yyyy-MM-dd');
+  print(
+    "Filtered = " +
+        todayExpenses
+            .map(
+              (e) =>
+                  '[${e.name}, ${e.amount.toStringAsFixed(2)}, ${ymd.format(e.date)}, ${e.receiptname}]',
+            )
+            .join(', '),
+  );
+
+  ref.read(expenseDataProvider.notifier).state = todayExpenses;
+
+  return todayExpenses;
 }
 
 Future<Map<String, dynamic>?> localcached() async {
@@ -226,15 +272,15 @@ class _HomepageState extends ConsumerState<Homepage> {
   void initState() {
     super.initState();
     print("inside init state of homepage");
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      addui(ref);
+      print("UI updated from local cache if available");
+    });
     loadLocalData();
     Future.delayed(Duration(milliseconds: 500), () {
       setState(() {
         delayPassed = true;
       });
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      addui(ref);
-      print("UI updated from local cache if available");
     });
   }
 
@@ -484,7 +530,8 @@ class _HomepageState extends ConsumerState<Homepage> {
               'imagePath': '',
             };
             final updateexpenseList = [updateexpense];
-            await addExpenses(updateexpense);
+            int pk = await addExpenses(updateexpense);
+            print(" Local row _pk $pk");
             print("updated expense to save:$updateexpenseList");
             await addui(ref);
             await loadLocalData();
@@ -551,7 +598,8 @@ class _HomepageState extends ConsumerState<Homepage> {
               : newreceiptNameController.text,
           'imagePath': _pickedImage!.path,
         };
-        await addExpenses(updateexpense);
+        int pk = await addExpenses(updateexpense);
+        print(" Local row _pk $pk");
         await addui(ref);
         await loadLocalData();
         await postexpenses(
@@ -582,7 +630,8 @@ class _HomepageState extends ConsumerState<Homepage> {
           _pickedImage!.path,
         );
 
-        await addExpenses(expense);
+        int pk = await addExpenses(expense);
+        print(" Local row _pk $pk");
 
         if (!mounted) return;
         await addui(ref);
@@ -620,656 +669,667 @@ class _HomepageState extends ConsumerState<Homepage> {
 
   @override
   Widget build(BuildContext context) {
-    final product = ref.watch(expenseDataProvider);
-
     return Consumer(
-      builder: (BuildContext context, WidgetRef ref, Widget? child) => Scaffold(
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverAppBar(
-              title: const Text(
-                'Good Morning !\nMadhu',
-                textAlign: TextAlign.left,
+      builder: (BuildContext context, WidgetRef ref, Widget? child) {
+        final product = ref.watch(expenseDataProvider);
+        print("the product is $product");
 
-                style: TextStyle(
-                  fontSize: 16,
-                  fontFamily: 'poppins',
-                  color: Color.fromRGBO(217, 217, 217, 1),
-                ),
-              ),
-              actions: [
-                Container(
-                  height: 45,
-                  width: 45,
-                  margin: const EdgeInsets.only(right: 20),
-                  padding: const EdgeInsets.all(0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const IconButton(
-                    icon: Icon(Icons.notifications_outlined),
-                    onPressed: null,
-                  ),
-                ),
-                Container(
-                  height: 45,
-                  width: 45,
-                  margin: const EdgeInsets.only(right: 3),
-                  padding: const EdgeInsets.all(0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.person_2_outlined),
-                    onPressed: () => Navigator.pushNamed(context, '/profile'),
-                  ),
-                ),
-                Container(
-                  margin: const EdgeInsets.all(20),
-                  color: Colors.white,
-                ),
-              ],
-              titleTextStyle: const TextStyle(
-                fontSize: 15,
-                color: Color.fromARGB(255, 255, 255, 255),
-              ),
-              expandedHeight: MediaQuery.of(context).size.height * 0.45,
-              backgroundColor: const Color.fromRGBO(52, 49, 199, 1),
-              floating: false,
-              pinned: false,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(10),
-                  bottomRight: Radius.circular(10),
-                ),
-              ),
+        return Scaffold(
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                title: const Text(
+                  'Good Morning !\nMadhu',
+                  textAlign: TextAlign.left,
 
-              flexibleSpace: FlexibleSpaceBar(
-                background: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.all(20),
-
-                      height: MediaQuery.of(context).size.height * 0.25,
-                      width: MediaQuery.of(context).size.width * 1.7,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: Colors.white,
-                        image: const DecorationImage(
-                          image: AssetImage('assets/images/homepage.png'),
-                          fit: BoxFit.fitWidth,
-                        ),
-                      ),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontFamily: 'poppins',
+                    color: Color.fromRGBO(217, 217, 217, 1),
+                  ),
+                ),
+                actions: [
+                  Container(
+                    height: 45,
+                    width: 45,
+                    margin: const EdgeInsets.only(right: 20),
+                    padding: const EdgeInsets.all(0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
                     ),
-                  ],
+                    child: const IconButton(
+                      icon: Icon(Icons.notifications_outlined),
+                      onPressed: null,
+                    ),
+                  ),
+                  Container(
+                    height: 45,
+                    width: 45,
+                    margin: const EdgeInsets.only(right: 3),
+                    padding: const EdgeInsets.all(0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.person_2_outlined),
+                      onPressed: () => Navigator.pushNamed(context, '/profile'),
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.all(20),
+                    color: Colors.white,
+                  ),
+                ],
+                titleTextStyle: const TextStyle(
+                  fontSize: 15,
+                  color: Color.fromARGB(255, 255, 255, 255),
+                ),
+                expandedHeight: MediaQuery.of(context).size.height * 0.45,
+                backgroundColor: const Color.fromRGBO(52, 49, 199, 1),
+                floating: false,
+                pinned: false,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
+                  ),
+                ),
+
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.all(20),
+
+                        height: MediaQuery.of(context).size.height * 0.25,
+                        width: MediaQuery.of(context).size.width * 1.7,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.white,
+                          image: const DecorationImage(
+                            image: AssetImage('assets/images/homepage.png'),
+                            fit: BoxFit.fitWidth,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            SliverToBoxAdapter(
-              child: !(delayPassed)
-                  ? Center(
-                      child: Transform.rotate(
-                        angle: math.pi / 2,
-                        child: CircularProgressIndicator(
-                          color: Colors.green,
-                          strokeWidth: 5,
-                        ),
-                      ),
-                    ) // or your splash/loading widget
-                  : (isuiupdated ?? false)
-                  ? Container(
-                      margin: const EdgeInsets.only(
-                        left: 15,
-                        top: 20,
-                        bottom: 10,
-                        right: 10,
-                      ),
-                      padding: const EdgeInsets.only(
-                        left: 110,
-                        top: 10,
-                        bottom: 10,
-                      ),
-                      height: MediaQuery.of(context).size.height * 0.18,
-                      width: MediaQuery.of(context).size.width * 0.9,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        image: const DecorationImage(
-                          image: images.AssetImage(
-                            'assets/images/addincome.png',
+              SliverToBoxAdapter(
+                child: !(delayPassed)
+                    ? Center(
+                        child: Transform.rotate(
+                          angle: math.pi / 2,
+                          child: CircularProgressIndicator(
+                            color: Colors.green,
+                            strokeWidth: 5,
                           ),
-                          fit: BoxFit.fitWidth,
                         ),
-                      ),
+                      ) // or your splash/loading widget
+                    : (isuiupdated ?? false)
+                    ? Container(
+                        margin: const EdgeInsets.only(
+                          left: 15,
+                          top: 20,
+                          bottom: 10,
+                          right: 10,
+                        ),
+                        padding: const EdgeInsets.only(
+                          left: 110,
+                          top: 10,
+                          bottom: 10,
+                        ),
+                        height: MediaQuery.of(context).size.height * 0.18,
+                        width: MediaQuery.of(context).size.width * 0.9,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          image: const DecorationImage(
+                            image: images.AssetImage(
+                              'assets/images/addincome.png',
+                            ),
+                            fit: BoxFit.fitWidth,
+                          ),
+                        ),
 
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.all(20),
+                              height: MediaQuery.of(context).size.height * 0.1,
+                              width: MediaQuery.of(context).size.width * 0.5,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.transparent,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () async {
+                                      try {
+                                        final result = await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const Salary(),
+                                          ),
+                                        );
+                                        print("Returned from Salary screen");
+                                        if (result != null) {
+                                          print(
+                                            "Salary data returned: $result",
+                                          );
+                                          // await loaduiupdated();
+                                          setState(() {
+                                            isuiupdated = false;
+                                            totalBalance =
+                                                (totalBalance ?? 0) +
+                                                (result['amount'] ?? 0);
+                                          });
+                                        }
+                                        // if (true) {
+                                        //   print("Refreshing income data");
+                                        //   initState();
+                                        // }
+                                      } catch (e) {
+                                        print('Error: $e');
+                                      }
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.only(
+                                        left: 80,
+                                        top: 0.5,
+                                      ),
+                                      padding: const EdgeInsets.only(
+                                        top: 0.5,
+                                        right: 1.7,
+                                      ),
+                                      height:
+                                          MediaQuery.of(context).size.height *
+                                          0.04,
+                                      width:
+                                          MediaQuery.of(context).size.width *
+                                          0.37,
+
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.values[5],
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          const Icon(
+                                            Icons.add,
+                                            color: Colors.white,
+                                            size: 18,
+                                          ),
+                                          const Text(
+                                            'Add Income',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontFamily: 'poppins',
+                                              fontWeight: FontWeight.w100,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Column(
                         children: [
                           Container(
-                            margin: const EdgeInsets.all(20),
-                            height: MediaQuery.of(context).size.height * 0.1,
-                            width: MediaQuery.of(context).size.width * 0.5,
+                            margin: const EdgeInsets.only(
+                              left: 15,
+                              top: 20,
+                              bottom: 10,
+                              right: 10,
+                            ),
+
+                            height: MediaQuery.of(context).size.height * 0.12,
+                            width: MediaQuery.of(context).size.width * 0.9,
+                            decoration: BoxDecoration(
+                              color: const images.Color.fromARGB(
+                                255,
+                                233,
+                                233,
+                                255,
+                              ),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 10),
+                                      child: Text(
+                                        "Total Balance \t ",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontFamily: 'poppins',
+
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black54,
+                                        ),
+                                        textAlign: TextAlign.start,
+                                      ),
+                                    ),
+
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 10),
+                                      child: Text(
+                                        '₹${totalBalance?.toStringAsFixed(2) ?? '0.00'}',
+                                        textAlign: TextAlign.left,
+                                        style: TextStyle(
+                                          fontSize: 23,
+                                          fontFamily: 'poppins',
+                                          fontWeight: FontWeight.bold,
+                                          color: const images.Color.fromARGB(
+                                            255,
+                                            0,
+                                            0,
+                                            0,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Spacer(),
+                                Container(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.04,
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.18,
+                                  margin: const EdgeInsets.only(
+                                    right: 5,
+                                    top: 13,
+                                  ),
+                                  padding: const EdgeInsets.only(left: 5),
+
+                                  decoration: BoxDecoration(
+                                    color: Color.fromRGBO(52, 49, 199, 1),
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Text(
+                                        'May',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        color: Colors.white,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.04,
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.1,
+                                  margin: const EdgeInsets.only(
+                                    right: 10,
+                                    top: 13,
+                                  ),
+
+                                  decoration: BoxDecoration(
+                                    color: Color.fromRGBO(64, 123, 255, 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(
+                                      Icons.list_rounded,
+                                      color: images.Color.fromRGBO(0, 0, 0, 1),
+                                    ),
+
+                                    onPressed: null,
+                                    iconSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.01,
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(
+                              left: 15,
+                              right: 15,
+                              bottom: 20,
+                              top: 10,
+                            ),
+                            height: MediaQuery.of(context).size.height * 0.15,
+                            width: MediaQuery.of(context).size.width * 0.9,
+
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
                               color: Colors.transparent,
+                              border: Border.all(
+                                color: Colors.black12,
+                                width: 1.0,
+                              ),
                             ),
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                GestureDetector(
-                                  onTap: () async {
-                                    try {
-                                      final result = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => const Salary(),
-                                        ),
-                                      );
-                                      print("Returned from Salary screen");
-                                      if (result != null) {
-                                        print("Salary data returned: $result");
-                                        // await loaduiupdated();
-                                        setState(() {
-                                          isuiupdated = false;
-                                          totalBalance =
-                                              (totalBalance ?? 0) +
-                                              (result['amount'] ?? 0);
-                                        });
-                                      }
-                                      // if (true) {
-                                      //   print("Refreshing income data");
-                                      //   initState();
-                                      // }
-                                    } catch (e) {
-                                      print('Error: $e');
-                                    }
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.only(
-                                      left: 80,
-                                      top: 0.5,
-                                    ),
-                                    padding: const EdgeInsets.only(
-                                      top: 0.5,
-                                      right: 1.7,
-                                    ),
-                                    height:
-                                        MediaQuery.of(context).size.height *
-                                        0.04,
-                                    width:
-                                        MediaQuery.of(context).size.width *
-                                        0.37,
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 10,
+                                    top: 3,
+                                  ),
+                                  child: Text(
+                                    "Spending process",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontFamily: 'poppins',
 
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.values[5],
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black54,
+                                    ),
+                                    textAlign: TextAlign.start,
+                                  ),
+                                ),
+
+                                AnimatedContainer(
+                                  duration: const Duration(seconds: 1),
+                                  margin: const EdgeInsets.only(
+                                    left: 20,
+                                    right: 20,
+                                  ),
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.02,
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.8,
+
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: const Color.fromRGBO(0, 128, 0, 1),
+                                  ),
+                                ),
+                                images.Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    images.Column(
                                       children: [
-                                        const Icon(
-                                          Icons.add,
-                                          color: Colors.white,
-                                          size: 18,
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 10,
+                                            top: 5,
+                                          ),
+                                          child: Text(
+                                            "left budget",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontFamily: 'poppins',
+
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black54,
+                                            ),
+                                            textAlign: TextAlign.start,
+                                          ),
                                         ),
-                                        const Text(
-                                          'Add Income',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontFamily: 'poppins',
-                                            fontWeight: FontWeight.w100,
-                                            color: Colors.white,
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 5,
+                                          ),
+                                          child: Text(
+                                            '₹${totalBalance?.toStringAsFixed(2) ?? '0.00'}',
+                                            textAlign: TextAlign.left,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontFamily: 'poppins',
+                                              fontWeight: FontWeight.w900,
+                                              color: Colors.black54,
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 1.0,
-                                      ),
+
+                                    images.Column(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 10,
+                                            right: 5,
+                                          ),
+                                          child: Text(
+                                            "Spent budget",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontFamily: 'poppins',
+
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black54,
+                                            ),
+                                            textAlign: TextAlign.start,
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 5,
+                                            bottom: 5,
+                                          ),
+                                          child: Text(
+                                            "₹${spendbudget.toStringAsFixed(2)}",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontFamily: 'poppins',
+
+                                              fontWeight: FontWeight.w900,
+                                              color: Colors.black54,
+                                            ),
+                                            textAlign: TextAlign.start,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
                         ],
                       ),
-                    )
-                  : Column(
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(
-                            left: 15,
-                            top: 20,
-                            bottom: 10,
-                            right: 10,
-                          ),
-
-                          height: MediaQuery.of(context).size.height * 0.12,
-                          width: MediaQuery.of(context).size.width * 0.9,
-                          decoration: BoxDecoration(
-                            color: const images.Color.fromARGB(
-                              255,
-                              233,
-                              233,
-                              255,
-                            ),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 10),
-                                    child: Text(
-                                      "Total Balance \t ",
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontFamily: 'poppins',
-
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black54,
-                                      ),
-                                      textAlign: TextAlign.start,
-                                    ),
-                                  ),
-
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 10),
-                                    child: Text(
-                                      '₹${totalBalance?.toStringAsFixed(2) ?? '0.00'}',
-                                      textAlign: TextAlign.left,
-                                      style: TextStyle(
-                                        fontSize: 23,
-                                        fontFamily: 'poppins',
-                                        fontWeight: FontWeight.bold,
-                                        color: const images.Color.fromARGB(
-                                          255,
-                                          0,
-                                          0,
-                                          0,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Spacer(),
-                              Container(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.04,
-                                width: MediaQuery.of(context).size.width * 0.18,
-                                margin: const EdgeInsets.only(
-                                  right: 5,
-                                  top: 13,
-                                ),
-                                padding: const EdgeInsets.only(left: 5),
-
-                                decoration: BoxDecoration(
-                                  color: Color.fromRGBO(52, 49, 199, 1),
-                                  borderRadius: BorderRadius.circular(50),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Text(
-                                      'May',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                      color: Colors.white,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.04,
-                                width: MediaQuery.of(context).size.width * 0.1,
-                                margin: const EdgeInsets.only(
-                                  right: 10,
-                                  top: 13,
-                                ),
-
-                                decoration: BoxDecoration(
-                                  color: Color.fromRGBO(64, 123, 255, 0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: IconButton(
-                                  icon: Icon(
-                                    Icons.list_rounded,
-                                    color: images.Color.fromRGBO(0, 0, 0, 1),
-                                  ),
-
-                                  onPressed: null,
-                                  iconSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.01,
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(
-                            left: 15,
-                            right: 15,
-                            bottom: 20,
-                            top: 10,
-                          ),
-                          height: MediaQuery.of(context).size.height * 0.15,
-                          width: MediaQuery.of(context).size.width * 0.9,
-
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.transparent,
-                            border: Border.all(
-                              color: Colors.black12,
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 10,
-                                  top: 3,
-                                ),
-                                child: Text(
-                                  "Spending process",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontFamily: 'poppins',
-
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black54,
-                                  ),
-                                  textAlign: TextAlign.start,
-                                ),
-                              ),
-
-                              AnimatedContainer(
-                                duration: const Duration(seconds: 1),
-                                margin: const EdgeInsets.only(
-                                  left: 20,
-                                  right: 20,
-                                ),
-                                height:
-                                    MediaQuery.of(context).size.height * 0.02,
-                                width: MediaQuery.of(context).size.width * 0.8,
-
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  color: const Color.fromRGBO(0, 128, 0, 1),
-                                ),
-                              ),
-                              images.Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  images.Column(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          left: 10,
-                                          top: 5,
-                                        ),
-                                        child: Text(
-                                          "left budget",
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontFamily: 'poppins',
-
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black54,
-                                          ),
-                                          textAlign: TextAlign.start,
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(left: 5),
-                                        child: Text(
-                                          '₹${totalBalance?.toStringAsFixed(2) ?? '0.00'}',
-                                          textAlign: TextAlign.left,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontFamily: 'poppins',
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.black54,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  images.Column(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 10,
-                                          right: 5,
-                                        ),
-                                        child: Text(
-                                          "Spent budget",
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontFamily: 'poppins',
-
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black54,
-                                          ),
-                                          textAlign: TextAlign.start,
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 5,
-                                          bottom: 5,
-                                        ),
-                                        child: Text(
-                                          "₹${spendbudget.toStringAsFixed(2)}",
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontFamily: 'poppins',
-
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.black54,
-                                          ),
-                                          textAlign: TextAlign.start,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.only(
-                  left: 15,
-                  right: 15,
-                  bottom: 20,
-                  top: 10,
-                ),
-                height: MediaQuery.of(context).size.height * 0.15,
-
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.transparent,
-                  border: Border.all(color: Colors.black12, width: 1.0),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.09,
-                      width: MediaQuery.of(context).size.width * 0.18,
-                      margin: const EdgeInsets.only(left: 10),
-                      padding: const EdgeInsets.all(0),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(128, 241, 177, 241),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.add_circle_outline_outlined,
-                          color: Color.fromRGBO(238, 130, 238, 1),
-                        ),
-                        onPressed: addExpense,
-                        iconSize: 30,
-                      ),
-                    ),
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.09,
-                      width: MediaQuery.of(context).size.width * 0.18,
-                      padding: const EdgeInsets.all(0),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(128, 255, 196, 86),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const IconButton(
-                        icon: Icon(
-                          Icons.savings_outlined,
-                          color: Color.fromRGBO(255, 165, 0, 1),
-                        ),
-
-                        onPressed: null,
-                        iconSize: 30,
-                      ),
-                    ),
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.09,
-                      width: MediaQuery.of(context).size.width * 0.18,
-                      padding: const EdgeInsets.all(0),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(128, 117, 249, 117),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const IconButton(
-                        icon: Icon(
-                          Icons.dashboard_customize_outlined,
-                          color: Color.fromRGBO(0, 128, 0, 1),
-                        ),
-                        onPressed: null,
-                        iconSize: 30,
-                      ),
-                    ),
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.09,
-                      width: MediaQuery.of(context).size.width * 0.18,
-                      margin: const EdgeInsets.only(right: 10),
-                      padding: const EdgeInsets.all(0),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 227, 227, 255),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const IconButton(
-                        icon: Icon(
-                          Icons.money_off_csred_outlined,
-                          color: Color.fromRGBO(0, 0, 255, 1),
-                        ),
-                        onPressed: null,
-                        iconSize: 30,
-                      ),
-                    ),
-                  ],
-                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.all(15),
-                height: 30,
-                color: Colors.transparent,
-                child: Row(
-                  children: [
-                    Text(
-                      'Today Expense',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'poppins',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            SliverList(
-              delegate: SliverChildBuilderDelegate((
-                BuildContext context,
-                int index,
-              ) {
-                return Container(
-                  padding: const EdgeInsets.all(10),
-
+              SliverToBoxAdapter(
+                child: Container(
                   margin: const EdgeInsets.only(
-                    left: 20,
-                    right: 20,
+                    left: 15,
+                    right: 15,
+                    bottom: 20,
                     top: 10,
-                    bottom: 10,
                   ),
-                  height: MediaQuery.of(context).size.height * 0.11,
+                  height: MediaQuery.of(context).size.height * 0.15,
 
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: const Color.fromARGB(255, 227, 227, 255),
-                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.transparent,
+                    border: Border.all(color: Colors.black12, width: 1.0),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        product[index].name,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontFamily: 'poppins',
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        height: MediaQuery.of(context).size.height * 0.09,
+                        width: MediaQuery.of(context).size.width * 0.18,
+                        margin: const EdgeInsets.only(left: 10),
+                        padding: const EdgeInsets.all(0),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(128, 241, 177, 241),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.add_circle_outline_outlined,
+                            color: Color.fromRGBO(238, 130, 238, 1),
+                          ),
+                          onPressed: addExpense,
+                          iconSize: 30,
                         ),
                       ),
+                      Container(
+                        height: MediaQuery.of(context).size.height * 0.09,
+                        width: MediaQuery.of(context).size.width * 0.18,
+                        padding: const EdgeInsets.all(0),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(128, 255, 196, 86),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const IconButton(
+                          icon: Icon(
+                            Icons.savings_outlined,
+                            color: Color.fromRGBO(255, 165, 0, 1),
+                          ),
 
-                      Text(
-                        '₹' + product[index].amount,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontFamily: 'poppins',
-                          fontWeight: FontWeight.w600,
+                          onPressed: null,
+                          iconSize: 30,
+                        ),
+                      ),
+                      Container(
+                        height: MediaQuery.of(context).size.height * 0.09,
+                        width: MediaQuery.of(context).size.width * 0.18,
+                        padding: const EdgeInsets.all(0),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(128, 117, 249, 117),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const IconButton(
+                          icon: Icon(
+                            Icons.dashboard_customize_outlined,
+                            color: Color.fromRGBO(0, 128, 0, 1),
+                          ),
+                          onPressed: null,
+                          iconSize: 30,
+                        ),
+                      ),
+                      Container(
+                        height: MediaQuery.of(context).size.height * 0.09,
+                        width: MediaQuery.of(context).size.width * 0.18,
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.all(0),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 227, 227, 255),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const IconButton(
+                          icon: Icon(
+                            Icons.money_off_csred_outlined,
+                            color: Color.fromRGBO(0, 0, 255, 1),
+                          ),
+                          onPressed: null,
+                          iconSize: 30,
                         ),
                       ),
                     ],
                   ),
-                );
-              }, childCount: product.length),
-            ),
-          ],
-        ),
-      ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.all(15),
+                  height: 30,
+                  color: Colors.transparent,
+                  child: Row(
+                    children: [
+                      Text(
+                        'Today Expense',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'poppins',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              SliverList(
+                delegate: SliverChildBuilderDelegate((
+                  BuildContext context,
+                  int index,
+                ) {
+                  return Container(
+                    padding: const EdgeInsets.all(10),
+
+                    margin: const EdgeInsets.only(
+                      left: 20,
+                      right: 20,
+                      top: 10,
+                      bottom: 10,
+                    ),
+                    height: MediaQuery.of(context).size.height * 0.11,
+
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: const Color.fromARGB(255, 227, 227, 255),
+                      border: Border.all(color: Colors.grey),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          product[index].name,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontFamily: 'poppins',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+
+                        Text(
+                          '₹${product[index].amount.toString()}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontFamily: 'poppins',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }, childCount: product.length),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
