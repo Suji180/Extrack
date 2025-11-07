@@ -42,7 +42,11 @@ async def add_expense(category: str = Form(...), amount: float = Form(...), rece
             content = await image.read()
             buffer.write(content)
 
-        return {"Message": "Expense added successfully"}
+        return {"Message": "Expense added successfully", "Added": {
+            "id": str(uid),
+            "category": str(category),
+            "amount": amount
+        }}
 
     except asyncpg.PostgresError as error:
         print(f"DB Error : {error}")
