@@ -63,11 +63,14 @@ async def sync_income(sync: Income, conn = Depends(get_connection), auth = Heade
         raise HTTPException(status_code= 400, detail= "No income data found, Income already synced")
     else:
         try:
-            await conn.execute("INSERT INTO dashboard (id, type, amount, date) VALUES ($1, $2, $3, $4)", 
+            await conn.execute("""INSERT INTO dashboard (id, type, amount, date) VALUES ($1, $2, $3, $4)
+                           ON CONFLICT (id) DO UPDATE
+                           SET type = EXCLUDED.type, amount = EXCLUDED.amount, date = EXCLUDED.date;""", 
                          uid, sync.salaryType, sync.salaryAmount, sync.salaryDate)
             
             return {"Message": "Income synced successfully", "synced_id": uid}
         except asyncpg.PostgresError as e:
+            print(f"DB Error : {e}")
             raise HTTPException(status_code= 500, detail= f"DB Error : {e}")
 
 @load.get("/full_sync")
@@ -91,7 +94,7 @@ async def get_expenses(conn = Depends(get_connection), auth = Header(None, alias
         print(expenses)
         if income or expenses:
             all_expenses = [{
-                "id": item['id'],
+                "id": str(item['id']),
                 "category": item['category'],
                 "amount": item['amount'],
                 "date": item['added_date']
@@ -99,7 +102,7 @@ async def get_expenses(conn = Depends(get_connection), auth = Header(None, alias
             for item in expenses
             ]
             income_data = {
-                "id": income['id'],
+                "id": str(income['id']),
                 "salaryType": income['type'],
                 "salaryAmount": income['amount'],
                 "salaryDate": income['date']

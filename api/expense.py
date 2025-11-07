@@ -5,6 +5,7 @@ import os
 from db import get_connection
 from dashboard import get_user_id
 from datetime import date
+from typing import Optional
 
 load = APIRouter()
 
@@ -13,8 +14,8 @@ if not os.path.exists(directory):
     os.makedirs(directory)
 
 @load.post("/add")
-async def add_expense(category: str = Form(...), amount: int = Form(...), receipt: str = Form(...),
-                    conn = Depends(get_connection), image: UploadFile = File(...), auth = Header(None, alias = "Authorization")):
+async def add_expense(category: str = Form(...), amount: float = Form(...), receipt: Optional[str] = Form(None),
+                     image: UploadFile = File(...), auth = Header(None, alias = "Authorization"), conn = Depends(get_connection)):
     
     print(category)
     print(amount)
