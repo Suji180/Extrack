@@ -223,10 +223,10 @@ class _HomepageState extends ConsumerState<Homepage> {
   }
 
   @override
-  void initState() {
+  void initState() async {
     super.initState();
     print("inside init state of homepage");
-    loadLocalData();
+    await loadLocalData();
     Future.delayed(Duration(milliseconds: 500), () {
       setState(() {
         delayPassed = true;

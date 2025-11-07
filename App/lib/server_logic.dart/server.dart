@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:convert' as response;
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -14,6 +15,7 @@ import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:math';
+import 'package:path/path.dart';
 
 late StreamSubscription subscription;
 
@@ -369,7 +371,7 @@ Future<String> getOrCreateDeviceId() async {
   return deviceId;
 }
 
-Future<void> getuser(String email, String password) async {
+Future<bool> getuser(String email, String password) async {
   try {
     final Device_id = await getOrCreateDeviceId();
     print(Device_id);
@@ -398,17 +400,21 @@ Future<void> getuser(String email, String password) async {
       await savetoken(jsonresponse["session_token"], jsonresponse["username"]);
       print(jsonresponse['status']);
       if (jsonresponse['status']) {
-        await getfullbackup();
+        final result = await getfullbackup();
+        return result;
       }
+      return true;
     } else {
       print("not signin ");
+      return false;
     }
   } catch (e) {
     print("error occured $e");
+    return false;
   }
 }
 
-Future<void> getfullbackup() async {
+Future<bool> getfullbackup() async {
   try {
     final String? token = await gettoken();
     if (token == null) {
@@ -432,14 +438,19 @@ Future<void> getfullbackup() async {
         for (var expense in expenses) {
           await addExpenses(Map<String, dynamic>.from(expense));
         }
+        print("backup process is successfully");
+        return true;
       } else {
         print("no it is list");
+        return false;
       }
     } else {
       print("no backup");
+      return false;
     }
   } catch (e) {
     print("the error is $e");
+    return false;
   }
 }
 
@@ -535,7 +546,7 @@ Future<void> postexpenses(
       'Content-Type': 'multipart/form-data',
     });
     request.fields['category'] = category;
-    request.fields['amount'] = amount.toString();
+    request.fields['amount'] = amount;
     request.fields['receipt'] = receipt;
     request.files.add(await http.MultipartFile.fromPath('image', filepath));
     var response = await request.send();

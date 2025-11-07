@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:extrack/server_logic.dart/server.dart';
 import 'package:extrack/Login_sign_up_page/googleauth.dart';
+
 import 'package:extrack/main.dart';
 import 'package:extrack/Login_sign_up_page/ForgetPassword.dart';
 
@@ -113,10 +114,11 @@ class SecondPageState extends State<LoginPage> {
                     child: GestureDetector(
                       onTap: () {
                         Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const Resetpass())
-                          );
-
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const Resetpass(),
+                          ),
+                        );
                       },
                       child: const Text(
                         'Forgot Password?',
@@ -155,16 +157,21 @@ class SecondPageState extends State<LoginPage> {
                         dei if you are working with database these above commented code will help you 
                         */
                     onPressed: () async {
-                      await getuser(
+                      bool ok = await getuser(
                         _emailController.text.trim(),
                         _passwordController.text.trim(),
                       );
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const MainApp()),
-                          (Route<dynamic> route)=>false,
+                      if (ok) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MainApp(),
+                          ),
+                          (Route<dynamic> route) => false,
                         );
+                      } else {
+                        print("login failed");
+                      }
                     },
                     // },
                     child: const Text(
