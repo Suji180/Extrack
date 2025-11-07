@@ -417,6 +417,7 @@ Future<bool> getuser(String email, String password) async {
 Future<bool> getfullbackup() async {
   try {
     final String? token = await gettoken();
+    final db = await DatabaseHelper().database;
     if (token == null) {
       print("No valid token found. Cannot sync data.");
     }
@@ -431,14 +432,29 @@ Future<bool> getfullbackup() async {
       final data = jsonDecode(response.body);
       print("backup $data");
       print(data['Income']);
+      final income = data['Income'];
+      print("the income is $income");
       await saveIncome(data['Income']);
+      await updateincomestatus(db, income['id']);
+
       print("the expense is ${data['Expenses']}");
       final expenses = data['Expenses'];
       if (expenses is List) {
         for (var expense in expenses) {
+          final id = expense['id'];
+          final category = expense['category'];
+          final amount = expense['amount'];
+          print("update status in sync function is $id , $category, $amount");
           await addExpenses(Map<String, dynamic>.from(expense));
+          await updatestatus(
+            db,
+            expense['id'],
+            expense['category'],
+            expense['amount'],
+          );
         }
         print("backup process is successfully");
+
         return true;
       } else {
         print("no it is list");
