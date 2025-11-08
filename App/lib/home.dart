@@ -469,7 +469,7 @@ class _HomepageState extends ConsumerState<Homepage> {
   }
 
   final String URL =
-      'https://saroo.app.n8n.cloud/webhook/e73d38f1-8e13-40e4-984a-538e234367ab';
+      'https://app.selfmade.social/webhook/e73d38f1-8e13-40e4-984a-538e234367ab';
   Future<bool> sendAudioToN8N(String? path) async {
     final now = DateTime.now();
     final formattedDate =

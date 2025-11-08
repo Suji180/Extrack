@@ -596,7 +596,7 @@ Future<Map<String, dynamic>?> postimageinn8n(String filepath) async {
   try {
     print("Posting image to inn8n workflow");
     var url = Uri.parse(
-      "https://saroo.app.n8n.cloud/webhook/b999aaa2-0b88-4d03-9fc8-0766de85835f",
+      "https://app.selfmade.social/webhook/b999aaa2-0b88-4d03-9fc8-0766de85835f",
     );
     var request = http.MultipartRequest('POST', url);
     request.files.add(
