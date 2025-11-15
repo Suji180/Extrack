@@ -1,5 +1,6 @@
 library my_globals;
 
+import 'package:intl/intl.dart';
 import 'dart:ffi';
 import 'dart:math' as math;
 import 'package:extrack/salary.dart';
@@ -29,145 +30,93 @@ class Homepage extends ConsumerStatefulWidget {
   ConsumerState<Homepage> createState() => _HomepageState();
 }
 
-Future<void> saveExpensewithexpiry(List<Map<String, dynamic>> expenses) async {
-  final storage = FlutterSecureStorage();
-  String? user = await storage.read(key: 'username');
-  print("user saveExpensewithexpiry: $user");
-  if (user == null) {
-    print("No user found, so cannot save expenses with session token");
-    return;
-  }
+ExpenseItem _mapToExpense(Map<String, dynamic> e) {
+  final raw = (e['date'] ?? '').toString().trim();
+  DateTime? date;
 
-  final now = DateTime.now();
-  final expiry = now.add(const Duration(days: 7));
+  date = DateTime.tryParse(raw);
+  print("   ➤ tryParse() result: $date");
 
-  final existingData = await storage.read(key: 'expense_with_expiry_$user');
-  List<Map<String, dynamic>> expenseList = [];
-
-  if (existingData != null) {
-    final stored = jsonDecode(existingData);
-    final expiryDate = DateTime.parse(stored['expiry']);
-    if (now.isBefore(expiryDate)) {
-      if (stored['expense'] is List) {
-        expenseList = List<Map<String, dynamic>>.from(stored['expense']);
-      } else {
-        print("Old expense data was a Map, resetting to empty list");
-      }
-    } else {
-      print("Existing data is expired");
+  if (date == null) {
+    try {
+      date = DateFormat('yyyy-MM-dd').parse(raw);
+      print("    DateFormat('yyyy-MM-dd').parse() result: $date");
+    } catch (e) {
+      print("    Failed DateFormat('yyyy-MM-dd').parse()");
     }
-
-    expenseList.addAll(expenses);
-  } else {
-    expenseList.addAll(expenses);
   }
-  print("testing saved expense list:");
-  print(expenseList);
 
-  final dataToStore = {
-    'expense': expenseList,
-    'expiry': expiry.toIso8601String(),
-  };
-  await storage.write(
-    key: 'expense_with_expiry_$user',
-    value: json.encode(dataToStore),
+  // If still failed → log and substitute
+  if (date == null) {
+    print("  INVALID DATE FORMAT → using DateTime(1900)");
+    return ExpenseItem(
+      name: (e['category'] ?? '').toString(),
+      amount: ((e['amount'] as num?)?.toDouble() ?? 0.0),
+      date: DateTime(1900),
+      receiptname: (e['receipt'] ?? '').toString(),
+    );
+  }
+
+  print("Final parsed date: $date\n");
+
+  return ExpenseItem(
+    name: (e['category'] ?? '').toString(),
+    amount: ((e['amount'] as num?)?.toDouble() ?? 0.0),
+    date: date,
+    receiptname: (e['receipt'] ?? '').toString(),
   );
-  print(dataToStore);
 }
 
-Future<List<Map<String, dynamic>>?> getExpensewithexpiry() async {
-  const storage = FlutterSecureStorage();
-  String? user = await storage.read(key: 'username');
-  print("user getExpensewithexpiry: $user");
-  if (user == null) {
-    print("No user found, so cannot get expensise with session token");
-    return null;
-  }
-  final data = await storage.read(key: 'expense_with_expiry_$user');
-  print("data retrieved from storage: $data");
-  if (data == null) {
-    return null;
-  }
-  final stored = jsonDecode(data);
-  final expiry = DateTime.parse(stored['expiry']);
+Future<List<ExpenseItem>> addui(WidgetRef ref) async {
+  final expenses = await getExpenses();
 
-  if (DateTime.now().isAfter(expiry)) {
-    await storage.delete(key: 'expense_with_expiry_$user');
-    return null;
-  }
-  print("retrieved expense with expiry:");
-  print(stored['expense']);
-  final List<Map<String, dynamic>> expense_list =
-      List<Map<String, dynamic>>.from(stored['expense']);
-  return expense_list;
-}
-
-Future<List<Map<String, dynamic>>?> addui(WidgetRef ref) async {
-  final storage = FlutterSecureStorage();
-  final now = DateTime.now();
-  print("addui now: $now");
-  final today = DateTime(now.year, now.month, now.day);
-  // String? user = await storage.read(key: 'username');
-  // print("user addui: $user");
-  // if (user == null) return null;
-  // final now = DateTime.now();
-  // final today = DateTime(now.year, now.month, now.day);
-  // String? lastdataload = await storage.read(key: 'last_data_load_$user');
-  // if (lastdataload != null) {
-  //   final lastLoadDate = DateTime.tryParse(lastdataload);
-  //   if (lastLoadDate != null && lastLoadDate.isBefore(today)) {
-  //     print("Last data load was before today, clearing expense data provider");
-  //     ref.read(expenseDataProvider.notifier).state = [];
-  //     await storage.write(
-  //       key: 'last_data_load_$user',
-  //       value: today.toIso8601String(),
-  //     );
-
-  //     return [];
-  //   }
-  // } else {
-  //   await storage.write(
-  //     key: 'last_data_load_$user',
-  //     value: today.toIso8601String(),
-  //   );
-  // }
-  final expense = await getExpensewithexpiry();
-  if (expense != null) {
-    print("Expense retrieved from local cache:");
-    print(expense);
-
-    List<ExpenseItem> todayExpenses = [];
-    
-    for (var exp in expense) {
-      DateTime expDate = DateTime.parse(exp['date']);
-      print(exp);
-      if (expDate.year == today.year &&
-          expDate.month == today.month &&
-          expDate.day == today.day) {
-        todayExpenses.add(
-          ExpenseItem(
-            name: (exp['category'] ?? '').toString(),
-            amount: (double.tryParse(exp['amount'].toString()) ?? 0.0)
-                .toString(),
-            date: expDate,
-            receiptname: (exp['receipt'] ?? '').toString(),
-          ),
-        );
-      }
-    }
-    ref.read(expenseDataProvider.notifier).state = todayExpenses;
-    return expense;
-  } else {
+  if (expenses == null || expenses.isEmpty) {
     print("No valid expense found in local cache or it has expired.");
-    return null;
+    ref.read(expenseDataProvider.notifier).state = [];
+    return [];
   }
+
+  print("Expense retrieved from local cache:");
+  print(expenses);
+
+  final today = DateTime.now();
+
+  final todayExpenses = expenses
+      .where((e) {
+        final raw = (e['date'] ?? '').toString().trim();
+        print("Comparing raw date: $raw");
+
+        final entryDate = DateTime.tryParse(raw);
+        if (entryDate == null) return false;
+
+        return entryDate.year == today.year &&
+            entryDate.month == today.month &&
+            entryDate.day == today.day;
+      })
+      .map<ExpenseItem>((e) => _mapToExpense(e))
+      .toList();
+
+  final ymd = DateFormat('yyyy-MM-dd');
+  print(
+    "Filtered = " +
+        todayExpenses
+            .map(
+              (e) =>
+                  '[${e.name}, ${e.amount.toStringAsFixed(2)}, ${ymd.format(e.date)}, ${e.receiptname}]',
+            )
+            .join(', '),
+  );
+
+  ref.read(expenseDataProvider.notifier).state = todayExpenses;
+
+  return todayExpenses;
 }
 
 Future<Map<String, dynamic>?> localcached() async {
   final income = await getincome();
-  if (income != null) {
+  if (income.toString() != "null") {
     print("Income from local cache: $income");
-    final callincome = await getExpensewithexpiry();
+    final callincome = await getExpenses();
     double parsedAmount = 0.0;
     if (callincome != null) {
       for (var inc in callincome) {
@@ -179,6 +128,7 @@ Future<Map<String, dynamic>?> localcached() async {
           value = account.toDouble();
         } else {
           print('cached expense has unsupported type');
+          continue;
         }
         parsedAmount += value;
         print('cached expense parsed amount: $parsedAmount');
@@ -200,6 +150,7 @@ class _HomepageState extends ConsumerState<Homepage> {
       TextEditingController();
   final TextEditingController newreceiptNameController =
       TextEditingController();
+  bool isLoading = false;
 
   bool? isuiupdated;
   double spendbudget = double.parse((0.00).toStringAsFixed(2));
@@ -219,6 +170,12 @@ class _HomepageState extends ConsumerState<Homepage> {
     });
   }
 
+  Future<void> resetandstore(double spend, double total) async {
+    final storage = FlutterSecureStorage();
+    await storage.write(key: "spendbudget", value: spend.toString());
+    await storage.write(key: "totalbalance", value: total.toString());
+  }
+
   Future<void> loadLocalData() async {
     print("Loading local data...");
     const storage = FlutterSecureStorage();
@@ -229,6 +186,7 @@ class _HomepageState extends ConsumerState<Homepage> {
     if (setincome != null && setincome['income'] != null) {
       double? total = double.tryParse(setincome['income']);
       double spend = 0.0;
+      print("IF BLOCK EXECUTED");
 
       if (setincome['budget'] != null) {
         spend = double.tryParse(setincome['budget']) ?? 0.0;
@@ -239,122 +197,65 @@ class _HomepageState extends ConsumerState<Homepage> {
 
       final spendStr = await storage.read(key: "spendbudget");
       final totalBalStr = await storage.read(key: "totalbalance");
-      final String? user = await storage.read(key: 'username');
-      final String? salaryType = await storage.read(key: 'salaryType$user');
-      final String? salaryDate = await storage.read(key: 'salaryDate$user');
-      if (salaryType != null && salaryDate != null) {
-        print("salaryType: $salaryType, salaryDate: $salaryDate");
-        if (salaryType == "Monthly") {
-          DateTime now = DateTime.now();
-          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
-          DateTime lastUpdate = lastUpdateStr != null
-              ? DateTime.parse(lastUpdateStr)
-              : now.subtract(const Duration(days: 30));
-          if (now.month != lastUpdate.month || now.year != lastUpdate.year) {
-            final gincome = await getincome();
-            total = double.parse(gincome ?? '0.0');
-            spend = 0;
-            await storage.write(key: "spendbudget", value: "0.0");
-            await storage.write(key: "totalbalance", value: total.toString());
-            await storage.write(
-              key: 'lastUpdateDate',
-              value: now.toIso8601String(),
-            );
-          } else {
-            print("Retrieved spendbudget and totalbalance from storage:");
-            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
-            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
-            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
-          }
-        }
-        if (salaryType == "Weekly") {
-          DateTime now = DateTime.now();
-          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
-          DateTime lastUpdate = lastUpdateStr != null
-              ? DateTime.parse(lastUpdateStr)
-              : now.subtract(Duration(days: 7));
-          bool isSunday = now.weekday == DateTime.sunday;
-          bool weekPassed = now.difference(lastUpdate).inDays >= 7;
+      final user = await storage.read(key: "userid");
+      final income = await getIncome();
+      final now = DateTime.now();
+      print("addui now: $now");
+      final today = DateTime(now.year, now.month, now.day);
+      for (var entry in income) {
+        if (entry['id'].toString() == user) {
+          print("salary type is");
+          print(entry['salaryType']);
 
-          if (isSunday && weekPassed) {
-            final gincome = await getincome();
-            total = double.parse(gincome ?? '0.0');
-            spend = 0;
-            await storage.write(key: "spendbudget", value: "0.0");
-            await storage.write(key: "totalbalance", value: total.toString());
-            await storage.write(
-              key: 'lastUpdateDate',
-              value: now.toIso8601String(),
-            );
-          } else {
-            print("Retrieved spendbudget and totalbalance from storage:");
-            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
-            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
-            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
-          }
-        }
-        if (salaryType == "Daily") {
+          final lastUpdateStr = await storage.read(
+            key: "lastUpdateDate_${entry['salaryType']}",
+          );
           DateTime now = DateTime.now();
-          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
-          print("lastUpdateStr: $lastUpdateStr");
-          DateTime lastUpdate = lastUpdateStr != null
-              ? DateTime.parse(lastUpdateStr)
-              : now.subtract(Duration(days: 1));
-
-          if ((now.day != lastUpdate.day ||
-              now.month != lastUpdate.month ||
-              now.year != lastUpdate.year)) {
-            print("Updating daily income for a new day");
-            final gincome = await getincome();
-            total = gincome != null
-                ? (total ?? 0) + double.parse(gincome)
-                : total;
-            spend = 0;
-            await storage.write(key: "spendbudget", value: "0.0");
-            await storage.write(key: "totalbalance", value: total.toString());
-            await storage.write(
-              key: 'lastUpdateDate',
-              value: now.toIso8601String(),
-            );
-          } else {
-            print("it was already updated today");
-            print("Retrieved spendbudget and totalbalance from storage:");
-            spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
-            total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
-          }
-        }
-        if (salaryType == "Yearly") {
-          DateTime now = DateTime.now();
-          String? lastUpdateStr = await storage.read(key: 'lastUpdateDate');
-          print("lastUpdateStr: $lastUpdateStr");
           DateTime lastUpdate = lastUpdateStr != null
               ? DateTime.parse(lastUpdateStr)
               : now.subtract(Duration(days: 365));
 
-          if (lastUpdate.year != now.year) {
-            final gincome = await getincome();
-            total = double.parse(gincome ?? '0.0');
-            spend = 0;
-            await storage.write(key: "spendbudget", value: "0.0");
-            await storage.write(key: "totalbalance", value: total.toString());
+          bool shouldReset = false;
+
+          if (entry['salaryType'] == 'Daily') {
+            if (now.day != lastUpdate.day ||
+                now.month != lastUpdate.month ||
+                now.year != lastUpdate.year) {
+              shouldReset = true;
+            }
+          } else if (entry['salaryType'] == 'Weekly') {
+            if (now.difference(lastUpdate).inDays >= 7) {
+              shouldReset = true;
+              print("it will work on weekly");
+            }
+          } else if (entry['salaryType'] == 'Monthly') {
+            if (now.month != lastUpdate.month || now.year != lastUpdate.year) {
+              shouldReset = true;
+              print("it will work on monthly");
+            }
+          } else if (entry['salaryType'] == 'Yearly') {
+            if (now.year != lastUpdate.year) {
+              shouldReset = true;
+            }
+          }
+
+          if (shouldReset) {
+            spend = 0.0;
+            total = double.tryParse(setincome['income']) ?? 0.0;
+            print("refresh the income for ${entry['salaryType']}");
+            await resetandstore(spend, total);
             await storage.write(
-              key: 'lastUpdateDate',
+              key: "lastUpdateDate_${entry['salaryType']}",
               value: now.toIso8601String(),
             );
           } else {
-            print("Retrieved spendbudget and totalbalance from storage:");
-            print("spendbudget: $spendStr, totalbalance: $totalBalStr");
             spend = double.tryParse(spendStr ?? '0.0') ?? 0.0;
             total = double.tryParse(totalBalStr ?? '0.0') ?? 0.0;
+            print("no reset needed for ${entry['salaryType']}");
           }
         }
       }
-      // if (spendStr != null && totalBalStr != null) {
-      //   print("Retrieved spendbudget and totalbalance from storage:");
-      //   print("spendbudget: $spendStr, totalbalance: $totalBalStr");
-      //   spend = double.tryParse(spendStr) ?? 0.0;
-      //   total = double.tryParse(totalBalStr) ?? 0.0;
-      // }
+
       setState(() {
         totalBalance = total ?? 0.0;
         spendbudget = spend;
@@ -371,15 +272,15 @@ class _HomepageState extends ConsumerState<Homepage> {
   void initState() {
     super.initState();
     print("inside init state of homepage");
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      addui(ref);
+      print("UI updated from local cache if available");
+    });
     loadLocalData();
     Future.delayed(Duration(milliseconds: 500), () {
       setState(() {
         delayPassed = true;
       });
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      addui(ref);
-      print("UI updated from local cache if available");
     });
   }
 
@@ -503,9 +404,15 @@ class _HomepageState extends ConsumerState<Homepage> {
           ),
 
           actions: [
-            MaterialButton(onPressed: add, child: const Text('Add')),
+            MaterialButton(
+              onPressed: () => add(context),
+              child: const Text('Add'),
+            ),
 
-            MaterialButton(onPressed: cancel, child: const Text('Cancel ')),
+            MaterialButton(
+              onPressed: () => cancel(context),
+              child: const Text('Cancel '),
+            ),
           ],
         );
       },
@@ -562,8 +469,12 @@ class _HomepageState extends ConsumerState<Homepage> {
   }
 
   final String URL =
-      'https://saroo.app.n8n.cloud/webhook/e73d38f1-8e13-40e4-984a-538e234367ab';
+      'https://app.selfmade.social/webhook/e73d38f1-8e13-40e4-984a-538e234367ab';
   Future<bool> sendAudioToN8N(String? path) async {
+    final now = DateTime.now();
+    final formattedDate =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}}";
+    final storage = FlutterSecureStorage();
     if (path != null) {
       final File audiofile = File(path);
       if (!await audiofile.exists()) {
@@ -585,7 +496,9 @@ class _HomepageState extends ConsumerState<Homepage> {
         final response = await request.send();
         final result = await response.stream.bytesToString();
 
-        if (response.statusCode == 200) {
+        if (response.statusCode == 200 ||
+            response.statusCode == 201 ||
+            response.statusCode == 202) {
           print("Sent success");
           print('$result');
           var jsonResponse = json.decode(result);
@@ -597,22 +510,29 @@ class _HomepageState extends ConsumerState<Homepage> {
           if (actualData.containsKey("error") &&
               actualData["error"] == "not related to expenses") {
             print("The audio does not relate to expenses.");
-            cancel();
+            cancel(context);
 
             return false;
           } else {
             print("Category: ${actualData["category"]}");
             print("Amount: ${actualData["amount"]}");
+            String? user = await storage.read(key: 'userid');
+            print("user add expense: $user");
+            if (user == null) {
+              print("No user found, so cannot add expense with session token");
+            }
             final updateexpense = {
-              'name': actualData["category"] ?? 'Uncategorized',
+              'id': user,
+              'category': actualData["category"] ?? 'Uncategorized',
               'amount': actualData["amount"] ?? 0,
-              'date': DateTime.now().toIso8601String(),
+              'date': formattedDate,
               'receiptname': newreceiptNameController.text,
               'imagePath': '',
             };
             final updateexpenseList = [updateexpense];
+            int pk = await addExpenses(updateexpense);
+            print(" Local row _pk $pk");
             print("updated expense to save:$updateexpenseList");
-            await saveExpensewithexpiry(updateexpenseList);
             await addui(ref);
             await loadLocalData();
             await postexpenses(
@@ -621,7 +541,7 @@ class _HomepageState extends ConsumerState<Homepage> {
               newreceiptNameController.text,
               '',
             );
-            cancel();
+            cancel(context);
           }
 
           try {
@@ -646,89 +566,98 @@ class _HomepageState extends ConsumerState<Homepage> {
     }
   }
 
-  void add() async {
-    print("it works");
-
-    // ref
-    //     .read(expenseDataProvider.notifier)
-    //     .addExpense(
-    //       ExpenseItem(
-    //         name: newexpenseNameController.text,
-    //         amount: newexpenseAmountController.text,
-    //         date: DateTime.now(),
-    //         receiptname: newreceiptNameController.text,
-    //       ),
-    //     );
-    // if(!path==null)
-    // {
-    //   print("image selected");
-    // }
-    // else{
-    //   print("no image selected");
-    // }
-    if (newexpenseAmountController.text.isEmpty ||
-        newexpenseNameController.text.isEmpty) {
-      print("Please fill all fields and select an image");
-      final data = await postimageinn8n(_pickedImage!.path);
-      print(data);
-      final updateexpense = {
-        'name': data != null ? data['category'] : 'Uncategorized',
-        'amount': data != null ? data['amount'] : 0,
-        'date': DateTime.now().toIso8601String(),
-        'receiptname': newreceiptNameController.text,
-        'imagePath': _pickedImage!.path,
-      };
-      final updateexpenseList = [updateexpense];
-
-      print("updated expense to save:$updateexpenseList");
-      await saveExpensewithexpiry(updateexpenseList);
-      await addui(ref);
-      await loadLocalData();
-      await postexpenses(
-        data != null ? data['category'] : 'Uncategorized',
-        data != null ? data['amount'] : 0,
-        newreceiptNameController.text,
-        _pickedImage!.path,
-      );
-    } else {
-      final expense = {
-        'category': newexpenseNameController.text,
-        'amount': newexpenseAmountController.text,
-        'date': DateTime.now().toIso8601String(),
-        'receipt': newreceiptNameController.text.isEmpty
-            ? ''
-            : newreceiptNameController.text,
-        'imagePath': _pickedImage?.path ?? '',
-      };
-      print("Name: ${newexpenseNameController.text}");
-      print("Amount: ${newexpenseAmountController.text}");
-      print("Receipt: ${newreceiptNameController.text}");
-      print("ImagePath: ${_pickedImage?.path}");
-
-      final expenseList = [expense];
-
-      await saveExpensewithexpiry(expenseList);
-      await addExpenses(expense);
-
-      await postexpenses(
-        newexpenseNameController.text,
-        newexpenseAmountController.text,
-        newreceiptNameController.text,
-        _pickedImage!.path,
-      );
-
-      await addui(ref);
-      await loadLocalData();
-    }
-    clear();
-    // close the dialog
-
+  void add(BuildContext context) async {
     Navigator.of(context).pop();
+    final now = DateTime.now();
+    final formattedDate =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+    print("it works");
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      if (newexpenseAmountController.text.isEmpty ||
+          newexpenseNameController.text.isEmpty) {
+        print("Please fill all fields and select an image");
+        final data = await postimageinn8n(_pickedImage!.path);
+        final storage = FlutterSecureStorage();
+        String? user = await storage.read(key: 'userid');
+        print("user add expense: $user");
+        if (user == null) {
+          print("No user found, so cannot add expense with session token");
+          return;
+        }
+        final updateexpense = {
+          'id': user,
+          'category': data != null ? data['category'] : 'Uncategorized',
+          'amount': data != null ? data['amount'] : 0,
+          'date': formattedDate,
+          'receipt': newreceiptNameController.text.isEmpty
+              ? ''
+              : newreceiptNameController.text,
+          'imagePath': _pickedImage!.path,
+        };
+        int pk = await addExpenses(updateexpense);
+        print(" Local row _pk $pk");
+        await addui(ref);
+        await loadLocalData();
+        await postexpenses(
+          data != null ? data['category'] : 'Uncategorized',
+          data != null ? data['amount'] : 0,
+          newreceiptNameController.text,
+          _pickedImage!.path,
+        );
+      } else if (!newexpenseAmountController.text.isEmpty &&
+          !newexpenseNameController.text.isEmpty &&
+          _pickedImage != null) {
+        final storage = FlutterSecureStorage();
+        String? user = await storage.read(key: 'userid');
+        if (user == null) return;
+
+        final expense = {
+          'id': user,
+          'category': newexpenseNameController.text,
+          'amount': newexpenseAmountController.text,
+          'date': formattedDate,
+          'receipt': newreceiptNameController.text,
+          'imagePath': _pickedImage?.path ?? '',
+        };
+        await postexpenses(
+          newexpenseNameController.text,
+          newexpenseAmountController.text,
+          newreceiptNameController.text,
+          _pickedImage!.path,
+        );
+
+        int pk = await addExpenses(expense);
+        print(" Local row _pk $pk");
+
+        if (!mounted) return;
+        await addui(ref);
+        await loadLocalData();
+
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        //cancel();
+
+        clear();
+      }
+    } catch (e) {
+      print("Error adding expense: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
-  void cancel() {
+  void cancel(BuildContext context) {
     print("cancelled");
-    Navigator.of(context).pop();
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
     clear();
   }
 
@@ -740,656 +669,667 @@ class _HomepageState extends ConsumerState<Homepage> {
 
   @override
   Widget build(BuildContext context) {
-    final product = ref.watch(expenseDataProvider);
-
     return Consumer(
-      builder: (BuildContext context, WidgetRef ref, Widget? child) => Scaffold(
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverAppBar(
-              title: const Text(
-                'Good Morning !\nMadhu',
-                textAlign: TextAlign.left,
+      builder: (BuildContext context, WidgetRef ref, Widget? child) {
+        final product = ref.watch(expenseDataProvider);
+        print("the product is $product");
 
-                style: TextStyle(
-                  fontSize: 16,
-                  fontFamily: 'poppins',
-                  color: Color.fromRGBO(217, 217, 217, 1),
-                ),
-              ),
-              actions: [
-                Container(
-                  height: 45,
-                  width: 45,
-                  margin: const EdgeInsets.only(right: 20),
-                  padding: const EdgeInsets.all(0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const IconButton(
-                    icon: Icon(Icons.notifications_outlined),
-                    onPressed: null,
-                  ),
-                ),
-                Container(
-                  height: 45,
-                  width: 45,
-                  margin: const EdgeInsets.only(right: 3),
-                  padding: const EdgeInsets.all(0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.person_2_outlined),
-                    onPressed: () => Navigator.pushNamed(context, '/profile'),
-                  ),
-                ),
-                Container(
-                  margin: const EdgeInsets.all(20),
-                  color: Colors.white,
-                ),
-              ],
-              titleTextStyle: const TextStyle(
-                fontSize: 15,
-                color: Color.fromARGB(255, 255, 255, 255),
-              ),
-              expandedHeight: MediaQuery.of(context).size.height * 0.45,
-              backgroundColor: const Color.fromRGBO(52, 49, 199, 1),
-              floating: false,
-              pinned: false,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(10),
-                  bottomRight: Radius.circular(10),
-                ),
-              ),
+        return Scaffold(
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                title: const Text(
+                  'Good Morning !\nMadhu',
+                  textAlign: TextAlign.left,
 
-              flexibleSpace: FlexibleSpaceBar(
-                background: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.all(20),
-
-                      height: MediaQuery.of(context).size.height * 0.25,
-                      width: MediaQuery.of(context).size.width * 1.7,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: Colors.white,
-                        image: const DecorationImage(
-                          image: AssetImage('assets/images/homepage.png'),
-                          fit: BoxFit.fitWidth,
-                        ),
-                      ),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontFamily: 'poppins',
+                    color: Color.fromRGBO(217, 217, 217, 1),
+                  ),
+                ),
+                actions: [
+                  Container(
+                    height: 45,
+                    width: 45,
+                    margin: const EdgeInsets.only(right: 20),
+                    padding: const EdgeInsets.all(0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
                     ),
-                  ],
+                    child: const IconButton(
+                      icon: Icon(Icons.notifications_outlined),
+                      onPressed: null,
+                    ),
+                  ),
+                  Container(
+                    height: 45,
+                    width: 45,
+                    margin: const EdgeInsets.only(right: 3),
+                    padding: const EdgeInsets.all(0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.person_2_outlined),
+                      onPressed: () => Navigator.pushNamed(context, '/profile'),
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.all(20),
+                    color: Colors.white,
+                  ),
+                ],
+                titleTextStyle: const TextStyle(
+                  fontSize: 15,
+                  color: Color.fromARGB(255, 255, 255, 255),
+                ),
+                expandedHeight: MediaQuery.of(context).size.height * 0.45,
+                backgroundColor: const Color.fromRGBO(52, 49, 199, 1),
+                floating: false,
+                pinned: false,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
+                  ),
+                ),
+
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.all(20),
+
+                        height: MediaQuery.of(context).size.height * 0.25,
+                        width: MediaQuery.of(context).size.width * 1.7,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.white,
+                          image: const DecorationImage(
+                            image: AssetImage('assets/images/homepage.png'),
+                            fit: BoxFit.fitWidth,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            SliverToBoxAdapter(
-              child: !(delayPassed)
-                  ? Center(
-                      child: Transform.rotate(
-                        angle: math.pi / 2,
-                        child: CircularProgressIndicator(
-                          color: Colors.green,
-                          strokeWidth: 5,
-                        ),
-                      ),
-                    ) // or your splash/loading widget
-                  : (isuiupdated ?? false)
-                  ? Container(
-                      margin: const EdgeInsets.only(
-                        left: 15,
-                        top: 20,
-                        bottom: 10,
-                        right: 10,
-                      ),
-                      padding: const EdgeInsets.only(
-                        left: 110,
-                        top: 10,
-                        bottom: 10,
-                      ),
-                      height: MediaQuery.of(context).size.height * 0.18,
-                      width: MediaQuery.of(context).size.width * 0.9,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        image: const DecorationImage(
-                          image: images.AssetImage(
-                            'assets/images/addincome.png',
+              SliverToBoxAdapter(
+                child: !(delayPassed)
+                    ? Center(
+                        child: Transform.rotate(
+                          angle: math.pi / 2,
+                          child: CircularProgressIndicator(
+                            color: Colors.green,
+                            strokeWidth: 5,
                           ),
-                          fit: BoxFit.fitWidth,
                         ),
-                      ),
+                      ) // or your splash/loading widget
+                    : (isuiupdated ?? false)
+                    ? Container(
+                        margin: const EdgeInsets.only(
+                          left: 15,
+                          top: 20,
+                          bottom: 10,
+                          right: 10,
+                        ),
+                        padding: const EdgeInsets.only(
+                          left: 110,
+                          top: 10,
+                          bottom: 10,
+                        ),
+                        height: MediaQuery.of(context).size.height * 0.18,
+                        width: MediaQuery.of(context).size.width * 0.9,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          image: const DecorationImage(
+                            image: images.AssetImage(
+                              'assets/images/addincome.png',
+                            ),
+                            fit: BoxFit.fitWidth,
+                          ),
+                        ),
 
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.all(20),
+                              height: MediaQuery.of(context).size.height * 0.1,
+                              width: MediaQuery.of(context).size.width * 0.5,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.transparent,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () async {
+                                      try {
+                                        final result = await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const Salary(),
+                                          ),
+                                        );
+                                        print("Returned from Salary screen");
+                                        if (result != null) {
+                                          print(
+                                            "Salary data returned: $result",
+                                          );
+                                          // await loaduiupdated();
+                                          setState(() {
+                                            isuiupdated = false;
+                                            totalBalance =
+                                                (totalBalance ?? 0) +
+                                                (result['amount'] ?? 0);
+                                          });
+                                        }
+                                        // if (true) {
+                                        //   print("Refreshing income data");
+                                        //   initState();
+                                        // }
+                                      } catch (e) {
+                                        print('Error: $e');
+                                      }
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.only(
+                                        left: 80,
+                                        top: 0.5,
+                                      ),
+                                      padding: const EdgeInsets.only(
+                                        top: 0.5,
+                                        right: 1.7,
+                                      ),
+                                      height:
+                                          MediaQuery.of(context).size.height *
+                                          0.04,
+                                      width:
+                                          MediaQuery.of(context).size.width *
+                                          0.37,
+
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.values[5],
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          const Icon(
+                                            Icons.add,
+                                            color: Colors.white,
+                                            size: 18,
+                                          ),
+                                          const Text(
+                                            'Add Income',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontFamily: 'poppins',
+                                              fontWeight: FontWeight.w100,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Column(
                         children: [
                           Container(
-                            margin: const EdgeInsets.all(20),
-                            height: MediaQuery.of(context).size.height * 0.1,
-                            width: MediaQuery.of(context).size.width * 0.5,
+                            margin: const EdgeInsets.only(
+                              left: 15,
+                              top: 20,
+                              bottom: 10,
+                              right: 10,
+                            ),
+
+                            height: MediaQuery.of(context).size.height * 0.12,
+                            width: MediaQuery.of(context).size.width * 0.9,
+                            decoration: BoxDecoration(
+                              color: const images.Color.fromARGB(
+                                255,
+                                233,
+                                233,
+                                255,
+                              ),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 10),
+                                      child: Text(
+                                        "Total Balance \t ",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontFamily: 'poppins',
+
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black54,
+                                        ),
+                                        textAlign: TextAlign.start,
+                                      ),
+                                    ),
+
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 10),
+                                      child: Text(
+                                        '₹${totalBalance?.toStringAsFixed(2) ?? '0.00'}',
+                                        textAlign: TextAlign.left,
+                                        style: TextStyle(
+                                          fontSize: 23,
+                                          fontFamily: 'poppins',
+                                          fontWeight: FontWeight.bold,
+                                          color: const images.Color.fromARGB(
+                                            255,
+                                            0,
+                                            0,
+                                            0,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Spacer(),
+                                Container(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.04,
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.18,
+                                  margin: const EdgeInsets.only(
+                                    right: 5,
+                                    top: 13,
+                                  ),
+                                  padding: const EdgeInsets.only(left: 5),
+
+                                  decoration: BoxDecoration(
+                                    color: Color.fromRGBO(52, 49, 199, 1),
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Text(
+                                        'May',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        color: Colors.white,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.04,
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.1,
+                                  margin: const EdgeInsets.only(
+                                    right: 10,
+                                    top: 13,
+                                  ),
+
+                                  decoration: BoxDecoration(
+                                    color: Color.fromRGBO(64, 123, 255, 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(
+                                      Icons.list_rounded,
+                                      color: images.Color.fromRGBO(0, 0, 0, 1),
+                                    ),
+
+                                    onPressed: null,
+                                    iconSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.01,
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(
+                              left: 15,
+                              right: 15,
+                              bottom: 20,
+                              top: 10,
+                            ),
+                            height: MediaQuery.of(context).size.height * 0.15,
+                            width: MediaQuery.of(context).size.width * 0.9,
+
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
                               color: Colors.transparent,
+                              border: Border.all(
+                                color: Colors.black12,
+                                width: 1.0,
+                              ),
                             ),
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                GestureDetector(
-                                  onTap: () async {
-                                    try {
-                                      final result = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => const Salary(),
-                                        ),
-                                      );
-                                      print("Returned from Salary screen");
-                                      if (result != null) {
-                                        print("Salary data returned: $result");
-                                        // await loaduiupdated();
-                                        setState(() {
-                                          isuiupdated = false;
-                                          totalBalance =
-                                              (totalBalance ?? 0) +
-                                              (result['amount'] ?? 0);
-                                        });
-                                      }
-                                      // if (true) {
-                                      //   print("Refreshing income data");
-                                      //   initState();
-                                      // }
-                                    } catch (e) {
-                                      print('Error: $e');
-                                    }
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.only(
-                                      left: 80,
-                                      top: 0.5,
-                                    ),
-                                    padding: const EdgeInsets.only(
-                                      top: 0.5,
-                                      right: 1.7,
-                                    ),
-                                    height:
-                                        MediaQuery.of(context).size.height *
-                                        0.04,
-                                    width:
-                                        MediaQuery.of(context).size.width *
-                                        0.37,
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 10,
+                                    top: 3,
+                                  ),
+                                  child: Text(
+                                    "Spending process",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontFamily: 'poppins',
 
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.values[5],
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black54,
+                                    ),
+                                    textAlign: TextAlign.start,
+                                  ),
+                                ),
+
+                                AnimatedContainer(
+                                  duration: const Duration(seconds: 1),
+                                  margin: const EdgeInsets.only(
+                                    left: 20,
+                                    right: 20,
+                                  ),
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.02,
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.8,
+
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: const Color.fromRGBO(0, 128, 0, 1),
+                                  ),
+                                ),
+                                images.Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    images.Column(
                                       children: [
-                                        const Icon(
-                                          Icons.add,
-                                          color: Colors.white,
-                                          size: 18,
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 10,
+                                            top: 5,
+                                          ),
+                                          child: Text(
+                                            "left budget",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontFamily: 'poppins',
+
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black54,
+                                            ),
+                                            textAlign: TextAlign.start,
+                                          ),
                                         ),
-                                        const Text(
-                                          'Add Income',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontFamily: 'poppins',
-                                            fontWeight: FontWeight.w100,
-                                            color: Colors.white,
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 5,
+                                          ),
+                                          child: Text(
+                                            '₹${totalBalance?.toStringAsFixed(2) ?? '0.00'}',
+                                            textAlign: TextAlign.left,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontFamily: 'poppins',
+                                              fontWeight: FontWeight.w900,
+                                              color: Colors.black54,
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 1.0,
-                                      ),
+
+                                    images.Column(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 10,
+                                            right: 5,
+                                          ),
+                                          child: Text(
+                                            "Spent budget",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontFamily: 'poppins',
+
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black54,
+                                            ),
+                                            textAlign: TextAlign.start,
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 5,
+                                            bottom: 5,
+                                          ),
+                                          child: Text(
+                                            "₹${spendbudget.toStringAsFixed(2)}",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontFamily: 'poppins',
+
+                                              fontWeight: FontWeight.w900,
+                                              color: Colors.black54,
+                                            ),
+                                            textAlign: TextAlign.start,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
                         ],
                       ),
-                    )
-                  : Column(
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(
-                            left: 15,
-                            top: 20,
-                            bottom: 10,
-                            right: 10,
-                          ),
-
-                          height: MediaQuery.of(context).size.height * 0.12,
-                          width: MediaQuery.of(context).size.width * 0.9,
-                          decoration: BoxDecoration(
-                            color: const images.Color.fromARGB(
-                              255,
-                              233,
-                              233,
-                              255,
-                            ),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 10),
-                                    child: Text(
-                                      "Total Balance \t ",
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontFamily: 'poppins',
-
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black54,
-                                      ),
-                                      textAlign: TextAlign.start,
-                                    ),
-                                  ),
-
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 10),
-                                    child: Text(
-                                      '₹${totalBalance?.toStringAsFixed(2) ?? '0.00'}',
-                                      textAlign: TextAlign.left,
-                                      style: TextStyle(
-                                        fontSize: 23,
-                                        fontFamily: 'poppins',
-                                        fontWeight: FontWeight.bold,
-                                        color: const images.Color.fromARGB(
-                                          255,
-                                          0,
-                                          0,
-                                          0,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Spacer(),
-                              Container(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.04,
-                                width: MediaQuery.of(context).size.width * 0.18,
-                                margin: const EdgeInsets.only(
-                                  right: 5,
-                                  top: 13,
-                                ),
-                                padding: const EdgeInsets.only(left: 5),
-
-                                decoration: BoxDecoration(
-                                  color: Color.fromRGBO(52, 49, 199, 1),
-                                  borderRadius: BorderRadius.circular(50),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Text(
-                                      'May',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                      color: Colors.white,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.04,
-                                width: MediaQuery.of(context).size.width * 0.1,
-                                margin: const EdgeInsets.only(
-                                  right: 10,
-                                  top: 13,
-                                ),
-
-                                decoration: BoxDecoration(
-                                  color: Color.fromRGBO(64, 123, 255, 0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: IconButton(
-                                  icon: Icon(
-                                    Icons.list_rounded,
-                                    color: images.Color.fromRGBO(0, 0, 0, 1),
-                                  ),
-
-                                  onPressed: null,
-                                  iconSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.01,
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(
-                            left: 15,
-                            right: 15,
-                            bottom: 20,
-                            top: 10,
-                          ),
-                          height: MediaQuery.of(context).size.height * 0.15,
-                          width: MediaQuery.of(context).size.width * 0.9,
-
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.transparent,
-                            border: Border.all(
-                              color: Colors.black12,
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 10,
-                                  top: 3,
-                                ),
-                                child: Text(
-                                  "Spending process",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontFamily: 'poppins',
-
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black54,
-                                  ),
-                                  textAlign: TextAlign.start,
-                                ),
-                              ),
-
-                              AnimatedContainer(
-                                duration: const Duration(seconds: 1),
-                                margin: const EdgeInsets.only(
-                                  left: 20,
-                                  right: 20,
-                                ),
-                                height:
-                                    MediaQuery.of(context).size.height * 0.02,
-                                width: MediaQuery.of(context).size.width * 0.8,
-
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  color: const Color.fromRGBO(0, 128, 0, 1),
-                                ),
-                              ),
-                              images.Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  images.Column(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          left: 10,
-                                          top: 5,
-                                        ),
-                                        child: Text(
-                                          "left budget",
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontFamily: 'poppins',
-
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black54,
-                                          ),
-                                          textAlign: TextAlign.start,
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(left: 5),
-                                        child: Text(
-                                          '₹${totalBalance?.toStringAsFixed(2) ?? '0.00'}',
-                                          textAlign: TextAlign.left,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontFamily: 'poppins',
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.black54,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  images.Column(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 10,
-                                          right: 5,
-                                        ),
-                                        child: Text(
-                                          "Spent budget",
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontFamily: 'poppins',
-
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black54,
-                                          ),
-                                          textAlign: TextAlign.start,
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 5,
-                                          bottom: 5,
-                                        ),
-                                        child: Text(
-                                          "₹${spendbudget.toStringAsFixed(2)}",
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontFamily: 'poppins',
-
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.black54,
-                                          ),
-                                          textAlign: TextAlign.start,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.only(
-                  left: 15,
-                  right: 15,
-                  bottom: 20,
-                  top: 10,
-                ),
-                height: MediaQuery.of(context).size.height * 0.15,
-
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.transparent,
-                  border: Border.all(color: Colors.black12, width: 1.0),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.09,
-                      width: MediaQuery.of(context).size.width * 0.18,
-                      margin: const EdgeInsets.only(left: 10),
-                      padding: const EdgeInsets.all(0),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(128, 241, 177, 241),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.add_circle_outline_outlined,
-                          color: Color.fromRGBO(238, 130, 238, 1),
-                        ),
-                        onPressed: addExpense,
-                        iconSize: 30,
-                      ),
-                    ),
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.09,
-                      width: MediaQuery.of(context).size.width * 0.18,
-                      padding: const EdgeInsets.all(0),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(128, 255, 196, 86),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const IconButton(
-                        icon: Icon(
-                          Icons.savings_outlined,
-                          color: Color.fromRGBO(255, 165, 0, 1),
-                        ),
-
-                        onPressed: null,
-                        iconSize: 30,
-                      ),
-                    ),
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.09,
-                      width: MediaQuery.of(context).size.width * 0.18,
-                      padding: const EdgeInsets.all(0),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(128, 117, 249, 117),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const IconButton(
-                        icon: Icon(
-                          Icons.dashboard_customize_outlined,
-                          color: Color.fromRGBO(0, 128, 0, 1),
-                        ),
-                        onPressed: null,
-                        iconSize: 30,
-                      ),
-                    ),
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.09,
-                      width: MediaQuery.of(context).size.width * 0.18,
-                      margin: const EdgeInsets.only(right: 10),
-                      padding: const EdgeInsets.all(0),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 227, 227, 255),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const IconButton(
-                        icon: Icon(
-                          Icons.money_off_csred_outlined,
-                          color: Color.fromRGBO(0, 0, 255, 1),
-                        ),
-                        onPressed: null,
-                        iconSize: 30,
-                      ),
-                    ),
-                  ],
-                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.all(15),
-                height: 30,
-                color: Colors.transparent,
-                child: Row(
-                  children: [
-                    Text(
-                      'Today Expense',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'poppins',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            SliverList(
-              delegate: SliverChildBuilderDelegate((
-                BuildContext context,
-                int index,
-              ) {
-                return Container(
-                  padding: const EdgeInsets.all(10),
-
+              SliverToBoxAdapter(
+                child: Container(
                   margin: const EdgeInsets.only(
-                    left: 20,
-                    right: 20,
+                    left: 15,
+                    right: 15,
+                    bottom: 20,
                     top: 10,
-                    bottom: 10,
                   ),
-                  height: MediaQuery.of(context).size.height * 0.11,
+                  height: MediaQuery.of(context).size.height * 0.15,
 
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: const Color.fromARGB(255, 227, 227, 255),
-                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.transparent,
+                    border: Border.all(color: Colors.black12, width: 1.0),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        product[index].name,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontFamily: 'poppins',
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        height: MediaQuery.of(context).size.height * 0.09,
+                        width: MediaQuery.of(context).size.width * 0.18,
+                        margin: const EdgeInsets.only(left: 10),
+                        padding: const EdgeInsets.all(0),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(128, 241, 177, 241),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.add_circle_outline_outlined,
+                            color: Color.fromRGBO(238, 130, 238, 1),
+                          ),
+                          onPressed: addExpense,
+                          iconSize: 30,
                         ),
                       ),
+                      Container(
+                        height: MediaQuery.of(context).size.height * 0.09,
+                        width: MediaQuery.of(context).size.width * 0.18,
+                        padding: const EdgeInsets.all(0),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(128, 255, 196, 86),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const IconButton(
+                          icon: Icon(
+                            Icons.savings_outlined,
+                            color: Color.fromRGBO(255, 165, 0, 1),
+                          ),
 
-                      Text(
-                        '₹' + product[index].amount,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontFamily: 'poppins',
-                          fontWeight: FontWeight.w600,
+                          onPressed: null,
+                          iconSize: 30,
+                        ),
+                      ),
+                      Container(
+                        height: MediaQuery.of(context).size.height * 0.09,
+                        width: MediaQuery.of(context).size.width * 0.18,
+                        padding: const EdgeInsets.all(0),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(128, 117, 249, 117),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const IconButton(
+                          icon: Icon(
+                            Icons.dashboard_customize_outlined,
+                            color: Color.fromRGBO(0, 128, 0, 1),
+                          ),
+                          onPressed: null,
+                          iconSize: 30,
+                        ),
+                      ),
+                      Container(
+                        height: MediaQuery.of(context).size.height * 0.09,
+                        width: MediaQuery.of(context).size.width * 0.18,
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.all(0),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 227, 227, 255),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const IconButton(
+                          icon: Icon(
+                            Icons.money_off_csred_outlined,
+                            color: Color.fromRGBO(0, 0, 255, 1),
+                          ),
+                          onPressed: null,
+                          iconSize: 30,
                         ),
                       ),
                     ],
                   ),
-                );
-              }, childCount: product.length),
-            ),
-          ],
-        ),
-      ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.all(15),
+                  height: 30,
+                  color: Colors.transparent,
+                  child: Row(
+                    children: [
+                      Text(
+                        'Today Expense',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'poppins',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              SliverList(
+                delegate: SliverChildBuilderDelegate((
+                  BuildContext context,
+                  int index,
+                ) {
+                  return Container(
+                    padding: const EdgeInsets.all(10),
+
+                    margin: const EdgeInsets.only(
+                      left: 20,
+                      right: 20,
+                      top: 10,
+                      bottom: 10,
+                    ),
+                    height: MediaQuery.of(context).size.height * 0.11,
+
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: const Color.fromARGB(255, 227, 227, 255),
+                      border: Border.all(color: Colors.grey),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          product[index].name,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontFamily: 'poppins',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+
+                        Text(
+                          '₹${product[index].amount.toString()}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontFamily: 'poppins',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }, childCount: product.length),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

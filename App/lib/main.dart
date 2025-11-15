@@ -5,11 +5,13 @@ import 'package:extrack/server_logic.dart/server.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  connectionlistener();
 
   final dbHelper = DatabaseHelper();
   final db = await dbHelper.database;
   final users = await db.query('users');
   final expenses = await db.query('expenses');
+  final income = await db.query('income');
   print("expenses table $expenses");
   print("users table $users");
 

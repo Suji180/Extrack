@@ -94,7 +94,7 @@ class Expensedata extends StateNotifier<List<ExpenseItem>>{
     for(var expense in state)
     {
       String date = convertDateTimeToString(expense.date);
-      double amount = double.parse(expense.amount);
+      double amount = expense.amount;
 
       if(DailyExpenseSummary.containsKey(date))
       {
