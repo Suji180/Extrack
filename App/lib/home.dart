@@ -1,6 +1,6 @@
 library my_globals;
 
-import 'package:intl/intl.dart';
+//import 'package:intl/intl.dart';
 import 'dart:ffi';
 import 'dart:math' as math;
 import 'package:extrack/salary.dart';
@@ -37,14 +37,14 @@ ExpenseItem _mapToExpense(Map<String, dynamic> e) {
   date = DateTime.tryParse(raw);
   print("   ➤ tryParse() result: $date");
 
-  if (date == null) {
-    try {
-      date = DateFormat('yyyy-MM-dd').parse(raw);
-      print("    DateFormat('yyyy-MM-dd').parse() result: $date");
-    } catch (e) {
-      print("    Failed DateFormat('yyyy-MM-dd').parse()");
-    }
-  }
+  // if (date == null) {
+  //   try {
+  //     date = DateFormat('yyyy-MM-dd').parse(raw);
+  //     print("    DateFormat('yyyy-MM-dd').parse() result: $date");
+  //   } catch (e) {
+  //     print("    Failed DateFormat('yyyy-MM-dd').parse()");
+  //   }
+  // }
 
   // If still failed → log and substitute
   if (date == null) {
@@ -96,16 +96,16 @@ Future<List<ExpenseItem>> addui(WidgetRef ref) async {
       .map<ExpenseItem>((e) => _mapToExpense(e))
       .toList();
 
-  final ymd = DateFormat('yyyy-MM-dd');
-  print(
-    "Filtered = " +
-        todayExpenses
-            .map(
-              (e) =>
-                  '[${e.name}, ${e.amount.toStringAsFixed(2)}, ${ymd.format(e.date)}, ${e.receiptname}]',
-            )
-            .join(', '),
-  );
+  //final ymd = DateFormat('yyyy-MM-dd');
+  // print(
+  //   "Filtered = " +
+  //       todayExpenses
+  //           .map(
+  //             (e) =>
+  //                 '[${e.name}, ${e.amount.toStringAsFixed(2)}, ${ymd.format(e.date)}, ${e.receiptname}]',
+  //           )
+  //           .join(', '),
+  // );
 
   ref.read(expenseDataProvider.notifier).state = todayExpenses;
 
@@ -324,28 +324,28 @@ class _HomepageState extends ConsumerState<Homepage> {
                   ),
                 ),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        decoration: const InputDecoration(
-                          labelText: 'Record voice',
-                          hintText: 'Hold to record voice',
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onLongPress: () async {
-                        await startRecording();
-                      },
-                      onLongPressUp: () async {
-                        String? path = await stopRecording();
-                        await sendAudioToN8N(path);
-                      },
-                      child: IconButton(onPressed: null, icon: Icon(Icons.mic)),
-                    ),
-                  ],
-                ),
+                // Row(
+                //   children: [
+                //     Expanded(
+                //       child: TextField(
+                //         decoration: const InputDecoration(
+                //           labelText: 'Record voice',
+                //           hintText: 'Hold to record voice',
+                //         ),
+                //       ),
+                //     ),
+                //     GestureDetector(
+                //       onLongPress: () async {
+                //         await startRecording();
+                //       },
+                //       onLongPressUp: () async {
+                //         String? path = await stopRecording();
+                //         await sendAudioToN8N(path);
+                //       },
+                //       child: IconButton(onPressed: null, icon: Icon(Icons.mic)),
+                //     ),
+                //   ],
+                // ),
 
                 GestureDetector(
                   onTap: () {
@@ -539,7 +539,7 @@ class _HomepageState extends ConsumerState<Homepage> {
               actualData["category"] ?? 'Uncategorized',
               actualData["amount"] ?? 0,
               newreceiptNameController.text,
-              '',
+              // '',
             );
             cancel(context);
           }
@@ -580,7 +580,7 @@ class _HomepageState extends ConsumerState<Homepage> {
       if (newexpenseAmountController.text.isEmpty ||
           newexpenseNameController.text.isEmpty) {
         print("Please fill all fields and select an image");
-        final data = await postimageinn8n(_pickedImage!.path);
+        // final data = await postimageinn8n(_pickedImage!.path);
         final storage = FlutterSecureStorage();
         String? user = await storage.read(key: 'userid');
         print("user add expense: $user");
@@ -590,27 +590,32 @@ class _HomepageState extends ConsumerState<Homepage> {
         }
         final updateexpense = {
           'id': user,
-          'category': data != null ? data['category'] : 'Uncategorized',
-          'amount': data != null ? data['amount'] : 0,
+          // 'category': data != null ? data['category'] : 'Uncategorized',
+          // 'amount': data != null ? data['amount'] : 0,
+          'category': newexpenseAmountController.text,
+          'amount':newexpenseAmountController.text,
           'date': formattedDate,
           'receipt': newreceiptNameController.text.isEmpty
               ? ''
               : newreceiptNameController.text,
-          'imagePath': _pickedImage!.path,
+          // 'imagePath': _pickedImage!.path,
         };
         int pk = await addExpenses(updateexpense);
         print(" Local row _pk $pk");
         await addui(ref);
         await loadLocalData();
         await postexpenses(
-          data != null ? data['category'] : 'Uncategorized',
-          data != null ? data['amount'] : 0,
+          // data != null ? data['category'] : 'Uncategorized',
+          // data != null ? data['amount'] : 0,
+          newexpenseNameController.text,
+          newexpenseAmountController.text,
           newreceiptNameController.text,
-          _pickedImage!.path,
+          // _pickedImage!.path,
         );
       } else if (!newexpenseAmountController.text.isEmpty &&
-          !newexpenseNameController.text.isEmpty &&
-          _pickedImage != null) {
+          !newexpenseNameController.text.isEmpty )
+          // _pickedImage != null
+      {
         final storage = FlutterSecureStorage();
         String? user = await storage.read(key: 'userid');
         if (user == null) return;
@@ -621,13 +626,13 @@ class _HomepageState extends ConsumerState<Homepage> {
           'amount': newexpenseAmountController.text,
           'date': formattedDate,
           'receipt': newreceiptNameController.text,
-          'imagePath': _pickedImage?.path ?? '',
+          // 'imagePath': _pickedImage?.path ?? '',
         };
         await postexpenses(
           newexpenseNameController.text,
           newexpenseAmountController.text,
           newreceiptNameController.text,
-          _pickedImage!.path,
+          // _pickedImage!.path,
         );
 
         int pk = await addExpenses(expense);
@@ -687,7 +692,7 @@ class _HomepageState extends ConsumerState<Homepage> {
                     fontSize: 16,
                     fontFamily: 'poppins',
                     color: Color.fromRGBO(217, 217, 217, 1),
-                  ),
+                  )
                 ),
                 actions: [
                   Container(
@@ -1287,14 +1292,13 @@ class _HomepageState extends ConsumerState<Homepage> {
                 ) {
                   return Container(
                     padding: const EdgeInsets.all(10),
-
                     margin: const EdgeInsets.only(
                       left: 20,
                       right: 20,
                       top: 10,
                       bottom: 10,
                     ),
-                    height: MediaQuery.of(context).size.height * 0.11,
+                    height: MediaQuery.of(context).size.height * 0.08,
 
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
@@ -1312,8 +1316,10 @@ class _HomepageState extends ConsumerState<Homepage> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                         const Spacer(),
 
-                        Text(
+                         Padding(padding: EdgeInsets.only(right:8),
+                         child:Text(
                           '₹${product[index].amount.toString()}',
                           style: const TextStyle(
                             fontSize: 20,
@@ -1321,10 +1327,36 @@ class _HomepageState extends ConsumerState<Homepage> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                  ),
+                        IconButton(
+                            icon:Icon(Icons.delete,color: Colors.red),
+                        onPressed: () async{
+                             var index_to_delete= index;
+                             print("index to delete : $index");
+                             final expense_detail={
+                               //'id':user,
+                               'category': product[index].name,
+                               'amount': product[index].amount.toString()
+                             };
+                              bool ok=await deleteexpense(
+                                 product[index].name,
+                             product[index].amount.toString()
+                             );
+                              if(ok)
+                                {
+                                   setState(() {
+                                     product.removeAt(index_to_delete);
+                                   });
+                                }
+                        }
+                        ),
+                        const SizedBox(width:4),
+                        Icon(Icons.edit,color: Colors.green,),
                       ],
                     ),
                   );
-                }, childCount: product.length),
+                },
+                    childCount: product.length),
               ),
             ],
           ),
