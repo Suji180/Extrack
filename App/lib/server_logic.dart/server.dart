@@ -544,11 +544,11 @@ Future<void> postexpenses(
   String category,
   String amount,
   String receipt,
-  String filepath,
+  // String filepath,
 ) async {
   final db = await DatabaseHelper().database;
   print("inside post expenses function");
-  print(filepath);
+  // print(filepath);
   print(receipt);
   print(amount);
   print(category);
@@ -568,7 +568,7 @@ Future<void> postexpenses(
     request.fields['category'] = category;
     request.fields['amount'] = amount;
     request.fields['receipt'] = receipt;
-    request.files.add(await http.MultipartFile.fromPath('image', filepath));
+    // request.files.add(await http.MultipartFile.fromPath('image', filepath));
     var response = await request.send();
     var body = await response.stream.bytesToString();
     var data = jsonDecode(body);
@@ -590,6 +590,29 @@ Future<void> postexpenses(
   } catch (e) {
     print("Error Adding expense: $e");
   }
+}
+
+Future<bool> deleteexpense(
+    String category,
+    String amount)async{
+   print('Inside delete function');
+   print( category);
+   print(amount);
+
+   final url=Uri.parse("http://10.0.2.2:8000/delete");
+   final response =await http.post(
+     url,
+     headers: {'content-type':'application/json'},
+     body: jsonEncode({' category': category,'amount':amount}),
+   );
+   if(response.statusCode==200||response.statusCode==204)
+     {
+       print('deleted expense details in database');
+       return true;
+     }
+   else{
+     return false;
+   }
 }
 
 Future<Map<String, dynamic>?> postimageinn8n(String filepath) async {
