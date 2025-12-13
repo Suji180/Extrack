@@ -35,3 +35,7 @@ class sync_data(BaseModel):
     local_id: int
     category: str
     amount: float
+
+class Delete(BaseModel):
+    category:str
+    amount:str

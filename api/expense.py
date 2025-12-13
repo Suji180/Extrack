@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter, UploadFile, File, Form, Header
-from pydantic import BaseModel
+from basemodel import Delete
 import asyncpg
 import os
 from db import get_connection
@@ -9,13 +9,14 @@ from typing import Optional
 
 load = APIRouter()
 
-directory = "/home/saravanesh/receipts"
-if not os.path.exists(directory):
-    os.makedirs(directory)
+# directory = "/home/saravanesh/receipts"
+# if not os.path.exists(directory):
+#     os.makedirs(directory)
 
 @load.post("/add")
 async def add_expense(category: str = Form(...), amount: float = Form(...), receipt: Optional[str] = Form(None),
-                     image: UploadFile = File(...), auth = Header(None, alias = "Authorization"), conn = Depends(get_connection)):
+                    #  image: UploadFile = File(...), 
+                     auth = Header(None, alias = "Authorization"), conn = Depends(get_connection)):
     
     print(category)
     print(amount)
@@ -37,10 +38,10 @@ async def add_expense(category: str = Form(...), amount: float = Form(...), rece
                            uid, category, amount, receipt)
         # await conn.execute("DELETE FROM expenses WHERE uid = $1 AND added_date < $2", uid, current_date)
 
-        file_location = os.path.join(directory, image.filename)
-        with open(file_location, "wb") as buffer:
-            content = await image.read()
-            buffer.write(content)
+        # file_location = os.path.join(directory, image.filename)
+        # with open(file_location, "wb") as buffer:
+        #     content = await image.read()
+        #     buffer.write(content)
 
         return {"Message": "Expense added successfully", "Added": {
             "id": str(uid),
@@ -51,4 +52,18 @@ async def add_expense(category: str = Form(...), amount: float = Form(...), rece
     except asyncpg.PostgresError as error:
         print(f"DB Error : {error}")
         raise HTTPException(status_code = 500, detail = f"MySQL Error : {error}")
+    
 
+@load.post("/delete")
+async def delete_post(expense_details:Delete,conn=Depends(get_connection)):
+    category=expense_details.category
+    amount=int(float(expense_details.amount))
+
+    try:
+       await conn.execute(""" DELETE FROM expenses WHERE category= $1 AND amount=$2""", category,amount)
+       print('expense deleted')
+       
+    except asyncpg.PostgresError as err:
+        print(err)
+        raise HTTPException(status_code=500,detail=str(err))
+    
