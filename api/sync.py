@@ -139,4 +139,3 @@ async def get_expenses(conn = Depends(get_connection), auth = Header(None, alias
 #         return {"Message": "Income retrived successfully", "Income Data": income_data}
     
 #     except asyncpg.PostgresError as e:
-#         raise HTTPException(status_code= 500, detail= f"DB Error : [e]")
