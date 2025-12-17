@@ -55,13 +55,28 @@ async def add_expense(category: str = Form(...), amount: float = Form(...), rece
     
 
 @load.post("/delete")
-async def delete_post(expense_details:Delete,conn=Depends(get_connection)):
+async def delete_post(expense_details:Delete,auth = Header(None, alias = "Authorization"),conn=Depends(get_connection)):
+    if not auth or not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail= "The Auth jwt token must be start with the format 'Bearer token'")
+    print(auth)
+    
+    jwt_token=auth.split(" ")[1]
+    try:
+        uid = get_user_id(jwt_token)
+        uid = int(uid)
+        print(uid)
+    except Exception as e:
+        raise HTTPException(status_code= 401, detail= f"Invald JWT or JWT Expired {e}")
+
     category=expense_details.category
     amount=int(float(expense_details.amount))
 
     try:
-       await conn.execute(""" DELETE FROM expenses WHERE category= $1 AND amount=$2""", category,amount)
-       print('expense deleted')
+       expense_details=await conn.fetchrow(""" DELETE FROM expenses WHERE id =$1 AND category= $2 AND amount=$3 Returning*""", uid,category,amount)
+       if expense_details:
+             print('expense deleted')
+       else:
+           raise HTTPException(status_code=404,detail=f"The given expense detail is not found")
        
     except asyncpg.PostgresError as err:
         print(err)

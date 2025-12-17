@@ -12,9 +12,9 @@ from datetime import date
 
 load = APIRouter()
 
-directory = "/home/saravanesh/receipts"
-if not os.path.exists(directory):
-    os.makedirs(directory)
+# directory = "/home/saravanesh/receipts"
+# if not os.path.exists(directory):
+#     os.makedirs(directory)
 
 @load.post("/sync_data")
 async def sync_offline_data(full_data: List[sync_data], 
