@@ -50,6 +50,7 @@ ExpenseItem _mapToExpense(Map<String, dynamic> e) {
   if (date == null) {
     print("  INVALID DATE FORMAT → using DateTime(1900)");
     return ExpenseItem(
+      expense_id: (e['expense_id']?? ''),
       name: (e['category'] ?? '').toString(),
       amount: ((e['amount'] as num?)?.toDouble() ?? 0.0),
       date: DateTime(1900),
@@ -60,6 +61,7 @@ ExpenseItem _mapToExpense(Map<String, dynamic> e) {
   print("Final parsed date: $date\n");
 
   return ExpenseItem(
+    expense_id: (e['expense_id']?? ''),
     name: (e['category'] ?? '').toString(),
     amount: ((e['amount'] as num?)?.toDouble() ?? 0.0),
     date: date,
@@ -588,10 +590,19 @@ class _HomepageState extends ConsumerState<Homepage> {
           print("No user found, so cannot add expense with session token");
           return;
         }
+        String expense_id =await postexpenses(
+          // data != null ? data['category'] : 'Uncategorized',
+          // data != null ? data['amount'] : 0,
+          newexpenseNameController.text,
+          newexpenseAmountController.text,
+          newreceiptNameController.text,
+          // _pickedImage!.path,
+        );
         final updateexpense = {
           'id': user,
           // 'category': data != null ? data['category'] : 'Uncategorized',
           // 'amount': data != null ? data['amount'] : 0,
+          'expense_id':expense_id,
           'category': newexpenseAmountController.text,
           'amount':newexpenseAmountController.text,
           'date': formattedDate,
@@ -604,14 +615,6 @@ class _HomepageState extends ConsumerState<Homepage> {
         print(" Local row _pk $pk");
         await addui(ref);
         await loadLocalData();
-        await postexpenses(
-          // data != null ? data['category'] : 'Uncategorized',
-          // data != null ? data['amount'] : 0,
-          newexpenseNameController.text,
-          newexpenseAmountController.text,
-          newreceiptNameController.text,
-          // _pickedImage!.path,
-        );
       } else if (!newexpenseAmountController.text.isEmpty &&
           !newexpenseNameController.text.isEmpty )
           // _pickedImage != null
@@ -620,28 +623,30 @@ class _HomepageState extends ConsumerState<Homepage> {
         String? user = await storage.read(key: 'userid');
         if (user == null) return;
 
-        final expense = {
-          'id': user,
-          'category': newexpenseNameController.text,
-          'amount': newexpenseAmountController.text,
-          'date': formattedDate,
-          'receipt': newreceiptNameController.text,
-          // 'imagePath': _pickedImage?.path ?? '',
-        };
-        await postexpenses(
+        String expense_id= await postexpenses(
           newexpenseNameController.text,
           newexpenseAmountController.text,
           newreceiptNameController.text,
           // _pickedImage!.path,
         );
+        print(expense_id);
+        if(expense_id!='') {
+          final expense = {
+            'id': user,
+            'expense_id': expense_id,
+            'category': newexpenseNameController.text,
+            'amount': newexpenseAmountController.text,
+            'date': formattedDate,
+            'receipt': newreceiptNameController.text,
+            // 'imagePath': _pickedImage?.path ?? '',
+          };
+          int pk = await addExpenses(expense);
+          print(" Local row _pk $pk");
 
-        int pk = await addExpenses(expense);
-        print(" Local row _pk $pk");
-
-        if (!mounted) return;
-        await addui(ref);
-        await loadLocalData();
-
+          if (!mounted) return;
+          await addui(ref);
+          await loadLocalData();
+        }
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
@@ -671,6 +676,41 @@ class _HomepageState extends ConsumerState<Homepage> {
     newexpenseAmountController.clear();
     newexpenseAmountController.clear();
   }
+
+  void delete(int expense_id)async
+  {
+    final storage=FlutterSecureStorage();
+    String? user= await storage.read(key: 'userid');
+    print(user);
+    if(user==null)
+    {
+      print("No user found, so cannot add expense with session token");
+      return;
+    }
+    print(expense_id);
+    final expense_to_delete={
+      'id': user,
+      'expense_id': expense_id
+    };
+    try {
+      bool ok = await deleteExpense(expense_to_delete);
+      if (ok) {
+        print("Expense deleted in local storage");
+        await addui(ref);
+        await loadLocalData();
+      }
+    }
+     catch(e)
+    {
+      print("Error occurred in deleting expense $e");
+    }
+    try {
+       await deleteexpense(expense_id);}
+     catch(e)
+    {
+      print("Error occured $e");
+    }
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -1330,25 +1370,13 @@ class _HomepageState extends ConsumerState<Homepage> {
                   ),
                         IconButton(
                             icon:Icon(Icons.delete,color: Colors.red),
-                        onPressed: () async{
-                             var index_to_delete= index;
-                             print("index to delete : $index");
-                             final expense_detail={
-                               //'id':user,
-                               'category': product[index].name,
-                               'amount': product[index].amount.toString()
-                             };
-                              bool ok=await deleteexpense(
-                                 product[index].name,
-                             product[index].amount.toString()
-                             );
-                              if(ok)
-                                {
-                                   setState(() {
-                                     product.removeAt(index_to_delete);
-                                   });
-                                }
-                        }
+                        onPressed: () async {
+                          print("Index to delete:$index");
+                          print(product[index].expense_id);
+                          delete(
+                             product[index].expense_id
+                          );
+                        },
                         ),
                         const SizedBox(width:4),
                         Icon(Icons.edit,color: Colors.green,),

@@ -36,13 +36,18 @@ Future<Database> _initDatabase() async {
   String path = join(await getDatabasesPath(), 'expenses.db');
   return await openDatabase(
     path,
-    version: 2,
+    version: 3,
     onCreate: _onCreate,
     onUpgrade: (db, oldVersion, newVersion) async {
       if (oldVersion < 2) {
         await db.execute('ALTER TABLE expenses ADD COLUMN date TEXT');
         print("Database upgraded to version $newVersion");
       }
+      if(oldVersion<3)
+        {
+          await db.execute("""ALTER TABLE expenses ADD COLUMN expense_id NUMERIC """);
+          print("Database upgraded to version $newVersion");
+        }
     },
   );
 }
@@ -51,6 +56,7 @@ Future<void> _onCreate(Database db, int version) async {
   await db.execute('''
   CREATE TABLE ${DatabaseHelper._tablename1}(
   _pk INTEGER PRIMARY KEY AUTOINCREMENT,
+    expense_id NUMERIC null,
     id TEXT ,
     category TEXT,
     amount REAL,
@@ -109,6 +115,19 @@ Future<int> addExpenses(Map<String, dynamic> expense) async {
   final db = await DatabaseHelper().database;
   print("Inserting expense into local database: $expense");
   return await db.insert(DatabaseHelper._tablename1, expense);
+}
+Future<bool> deleteExpense(Map<String,dynamic> expense)async{
+  final db= await DatabaseHelper().database;
+  print("Deleting expense in database $expense");
+  try{
+    await db.delete(DatabaseHelper._tablename1, where: 'id= ?and expense_id=?',whereArgs: [expense['id'],expense['expense_id']]);
+    return true;
+  }
+  catch(e)
+  {
+    print("Error in deleting $e");
+    return false;
+  }
 }
 
 Future<List<Map<String, dynamic>>> getExpenses() async {
@@ -540,7 +559,7 @@ Future<void> passwordresetconfirm(
   }
 }
 
-Future<void> postexpenses(
+Future<String> postexpenses(
   String category,
   String amount,
   String receipt,
@@ -556,7 +575,7 @@ Future<void> postexpenses(
   print(token);
   if (token == null) {
     print("No token found. user mat no be logged in or token is expired");
-    return;
+    return '';
   }
   try {
     var url = Uri.parse("http://10.0.2.2:8000/add");
@@ -584,33 +603,48 @@ Future<void> postexpenses(
         expense['category'],
         expense['amount'],
       );
+      print(data['Added']['expense_id']);
+      return data['Added']['expense_id'];
     } else {
       print("Expense adding failed");
+      return '';
     }
   } catch (e) {
     print("Error Adding expense: $e");
+    return '';
   }
 }
 
-Future<bool> deleteexpense(
-    String category,
-    String amount)async{
+Future<bool> deleteexpense (
+    int expense_id)async{
    print('Inside delete function');
-   print( category);
-   print(amount);
-
-   final url=Uri.parse("http://10.0.2.2:8000/delete");
-   final response =await http.post(
-     url,
-     headers: {'content-type':'application/json'},
-     body: jsonEncode({' category': category,'amount':amount}),
-   );
-   if(response.statusCode==200||response.statusCode==204)
-     {
+   print( expense_id);
+   String? token= await gettoken();
+   print(token);
+   if(token==null)
+   {
+     print("No token found. user mat no be logged in or token is expired");
+     return false;
+   }
+   try {
+     final url = Uri.parse("http://10.0.2.2:8000/delete");
+     final response = await http.post(
+       url,
+       headers: {
+         'authorization':'Bearer $token',
+         'content-type': 'application/json'},
+       body: jsonEncode({'expense_id':expense_id}),
+     );
+     if (response.statusCode == 200 || response.statusCode == 204) {
        print('deleted expense details in database');
        return true;
      }
-   else{
+     else {
+       return false;
+     }
+   }
+   catch (e){
+     print("Error deleting expenses :$e");
      return false;
    }
 }
