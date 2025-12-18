@@ -37,5 +37,4 @@ class sync_data(BaseModel):
     amount: float
 
 class Delete(BaseModel):
-    category:str
-    amount:str
+    expense_id:int

@@ -1,3 +1,4 @@
+from random import randint
 from fastapi import FastAPI, Request, Response, Depends, HTTPException, APIRouter, UploadFile, File, Form, Header
 from basemodel import Delete
 import asyncpg
@@ -34,8 +35,9 @@ async def add_expense(category: str = Form(...), amount: float = Form(...), rece
     # month = current_date.strftime("%b")
     # print(month)
     try:
-        await conn.execute("INSERT INTO expenses (id, category, amount, receipt) VALUES ($1, $2, $3, $4)", 
-                           uid, category, amount, receipt)
+        expense_id=randint(100000,999999)
+        await conn.execute("INSERT INTO expenses (id, category, amount, receipt,expense_id) VALUES ($1, $2, $3, $4,$5)", 
+                           uid, category, amount, receipt,expense_id)
         # await conn.execute("DELETE FROM expenses WHERE uid = $1 AND added_date < $2", uid, current_date)
 
         # file_location = os.path.join(directory, image.filename)
@@ -44,6 +46,7 @@ async def add_expense(category: str = Form(...), amount: float = Form(...), rece
         #     buffer.write(content)
 
         return {"Message": "Expense added successfully", "Added": {
+            "expense_id":str(expense_id),
             "id": str(uid),
             "category": str(category),
             "amount": (float(amount))
@@ -66,13 +69,11 @@ async def delete_post(expense_details:Delete,auth = Header(None, alias = "Author
         uid = int(uid)
         print(uid)
     except Exception as e:
-        raise HTTPException(status_code= 401, detail= f"Invald JWT or JWT Expired {e}")
+        raise HTTPException(status_code= 401, detail= f"Invalid JWT or JWT Expired {e}")
 
-    category=expense_details.category
-    amount=int(float(expense_details.amount))
-
+    expense_id =expense_details.expense_id
     try:
-       expense_details=await conn.fetchrow(""" DELETE FROM expenses WHERE id =$1 AND category= $2 AND amount=$3 Returning*""", uid,category,amount)
+       expense_details=await conn.fetchrow(""" DELETE FROM expenses WHERE id =$1 AND expense_id=$2 Returning*""", uid,expense_id)
        if expense_details:
              print('expense deleted')
        else:
