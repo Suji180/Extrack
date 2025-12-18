@@ -35,32 +35,43 @@ class SecondPageState extends State<LoginPage> {
       extendBodyBehindAppBar: true,
 
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-      body: Container(
-        /*decoration: const BoxDecoration(
+      body: Column(
+        children: [
+        Container(
+        height: MediaQuery.of(context).size.height*0.37,
+        //width: MediaQuery.of(context).size.width*1.7,
+        decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/bg.jpg'),
-                fit: BoxFit.cover,
-              )
-            ),*/
-        child: SingleChildScrollView(
+                image: AssetImage('assets/images/Loginpage.png'),
+                fit: BoxFit.fitWidth,
+              ),
+                  borderRadius:BorderRadius.only(
+            bottomRight: Radius.circular(10),
+                    bottomLeft: Radius.circular(10)
+        )
+            ),
+      ),
+         Expanded(child:
+         SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                margin: const EdgeInsets.only(top: 150, bottom: 20),
+                margin: const EdgeInsets.only(top: 3, bottom: 20,left: 10),
                 child: const Text(
-                  'Welcome Back',
+                  'Sign In',
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color.fromARGB(150, 0, 0, 0),
+                    fontFamily: 'poppins',
+                    color: Colors.black,
                   ),
                 ),
               ),
-              const SizedBox(height: 80),
+              const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.only(left: 25),
-                margin: const EdgeInsets.only(left: 25, right: 25),
+                margin: const EdgeInsets.only(left: 10, right: 25),
                 child: TextField(
                   controller: _emailController,
                   decoration: InputDecoration(
@@ -75,14 +86,14 @@ class SecondPageState extends State<LoginPage> {
                 ),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.black38),
-                  borderRadius: BorderRadius.circular(30),
+                 borderRadius: BorderRadius.all(Radius.circular(10))
                 ),
               ),
               const SizedBox(height: 21),
 
               Container(
                 padding: const EdgeInsets.only(left: 25),
-                margin: const EdgeInsets.only(left: 25, right: 25),
+                margin: const EdgeInsets.only(left: 10, right: 25),
                 child: TextField(
                   controller: _passwordController,
                   decoration: InputDecoration(
@@ -102,7 +113,7 @@ class SecondPageState extends State<LoginPage> {
                 ),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.black38),
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
                 ),
               ),
               const SizedBox(height: 21),
@@ -139,7 +150,7 @@ class SecondPageState extends State<LoginPage> {
                   margin: const EdgeInsets.only(left: 25, right: 25),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 57, 116, 219),
+                      backgroundColor: const Color.fromARGB(255, 0, 13, 253),
                     ),
 
                     // onPressed: () async {
@@ -184,7 +195,7 @@ class SecondPageState extends State<LoginPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 41),
+              const SizedBox(height: 25),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -201,7 +212,7 @@ class SecondPageState extends State<LoginPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 41),
+              const SizedBox(height: 25),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -264,7 +275,9 @@ class SecondPageState extends State<LoginPage> {
             ],
           ),
         ),
-      ),
-    );
+         )
+    ],
+    )
+      );
   }
 }
